@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ErpMcp.Domain\ErpMcp.Domain.csproj" />
+    <ProjectReference Include="..\..\src\ErpMcp.Application\ErpMcp.Application.csproj" />
+  </ItemGroup>
+
+</Project>
