@@ -48,6 +48,14 @@ Then connect a real client (Claude Desktop, Claude Code, VS Code, MCP Inspector)
 OAuth, see **[docs/http-transport.md](docs/http-transport.md)**. This repo includes a project
 `.mcp.json`, so Claude Code picks the server up automatically.
 
+### See it end to end
+
+```bash
+./scripts/demo.sh      # agent drafts → retry is idempotent → person approves → stock ships → audit
+```
+
+Captured output: **[docs/walkthrough.md](docs/walkthrough.md)**
+
 ### The approval loop
 
 ```bash
@@ -79,7 +87,8 @@ tools/call ─▶ error mapping ─▶ audit ─▶ scope check ─▶ argument 
 ```
 
 Read more: [architecture](docs/architecture.md) · [security model](docs/security.md) ·
-[approval workflow](docs/approval-workflow.md) · [audit trail](docs/audit.md) · [database](docs/database.md)
+[HTTP & OAuth](docs/http-transport.md) · [approval workflow](docs/approval-workflow.md) ·
+[audit trail](docs/audit.md) · [database](docs/database.md) · [walkthrough](docs/walkthrough.md)
 
 ## 🧪 Tests
 
@@ -87,9 +96,11 @@ Read more: [architecture](docs/architecture.md) · [security model](docs/securit
 dotnet test --solution ErpMcp.slnx     # needs Docker for the integration tests
 ```
 
-The suite has 158 tests: unit, repository integration against PostgreSQL, and end-to-end tests
-that launch the compiled server and drive it with the official MCP C# client. Concurrency is
-covered too, including idempotent draft retries racing and two approvers deciding at once.
+The suite has 228 tests: unit, repository integration against PostgreSQL, and end-to-end tests
+that launch the compiled server, over stdio and over HTTP with signed OAuth tokens, and drive it
+with the official MCP C# client. They cover concurrency (racing idempotent retries, competing
+approvals for scarce stock) and least privilege (a real `erp_app` login is refused DDL and audit
+tampering).
 
 ## 🧰 Stack
 
@@ -108,6 +119,9 @@ covered too, including idempotent draft retries racing and two approvers decidin
 - [x] Guide for connecting to MCP clients
 - [x] Streamable HTTP transport with OAuth-backed per-user scopes
 - [x] Stock reservation on approval, fulfilment and cancellation
+- [x] Typed tool output (`outputSchema`), MCP prompts and a guide resource
+- [x] Audit hardening: least-privilege DB roles, fail-closed mode, log shipping
+- [x] Reproducible end-to-end demo
 
 ## 📌 Notes
 
