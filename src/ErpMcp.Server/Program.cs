@@ -53,6 +53,12 @@ if (cli.Is("orders"))
     return await OrderCommands.RunAsync(cli, host.Services, Console.Out, CancellationToken.None);
 }
 
+if (cli.Is("audit"))
+{
+    using var host = builder.Build();
+    return await AuditCommands.RunAsync(cli, host.Services, Console.Out, CancellationToken.None);
+}
+
 if (cli.Command.Count > 0)
 {
     await Console.Error.WriteLineAsync($"error: unknown command '{cli.Command[0]}'.\n\n{CommandLine.Usage}");

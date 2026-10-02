@@ -3,13 +3,14 @@ using ErpMcp.Application.Common;
 using ErpMcp.Application.Orders;
 using ErpMcp.Application.Security;
 using ErpMcp.Domain.Orders;
+using ErpMcp.Server.Auditing;
 using ErpMcp.Server.Security;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
 
 [McpServerToolType]
-public sealed class DraftOrderTools(DraftOrderService drafts)
+public sealed class DraftOrderTools(DraftOrderService drafts, ToolCallAnnotations audit)
 {
     [RequiresScope(Scopes.OrdersDraft)]
     [McpServerTool(Name = "create_draft_order", Title = "Create draft order",
@@ -35,6 +36,7 @@ public sealed class DraftOrderTools(DraftOrderService drafts)
             idempotencyKey);
 
         var result = await drafts.CreateAsync(request, AgentActor.FromClientName(server.ClientInfo?.Name), ct);
+        audit.EntityRef = result.Order.OrderNumber;
 
         var message = result.AlreadyExisted
             ? $"Draft {result.Order.OrderNumber} already existed for this idempotency key. No new order was created."

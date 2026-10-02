@@ -29,6 +29,7 @@ public sealed partial class PostgresFixture
                 ["Database__ConnectionString"] = ConnectionString,
                 ["Database__MigrateOnStartup"] = "false",
                 ["Security__Scopes"] = scopes,
+                ["Audit__RedactedArguments__0"] = "notes",
             },
         }));
 
