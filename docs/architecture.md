@@ -46,9 +46,11 @@ The server follows a layered ("clean") architecture. Dependencies point inwards 
 │   ├── ErpMcp.Infrastructure/
 │   └── ErpMcp.Server/
 ├── tests/
-│   └── ErpMcp.UnitTests/
+│   ├── ErpMcp.UnitTests/          fast, no I/O
+│   └── ErpMcp.IntegrationTests/   real PostgreSQL via Testcontainers (needs Docker)
 ├── scripts/            helper scripts (MCP smoke client)
-├── docs/               architecture and usage guides
+├── docs/               architecture and usage guides (see database.md)
+├── docker-compose.yml  local PostgreSQL
 ├── Directory.Build.props     shared compiler settings (warnings as errors)
 └── Directory.Packages.props  central NuGet versions
 ```

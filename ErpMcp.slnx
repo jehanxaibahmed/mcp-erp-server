@@ -6,6 +6,7 @@
     <Project Path="src/ErpMcp.Server/ErpMcp.Server.csproj" />
   </Folder>
   <Folder Name="/tests/">
+    <Project Path="tests/ErpMcp.IntegrationTests/ErpMcp.IntegrationTests.csproj" />
     <Project Path="tests/ErpMcp.UnitTests/ErpMcp.UnitTests.csproj" />
   </Folder>
 </Solution>
