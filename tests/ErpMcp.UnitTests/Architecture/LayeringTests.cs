@@ -8,8 +8,8 @@ namespace ErpMcp.UnitTests.Architecture;
 /// </summary>
 public class LayeringTests
 {
-    private static readonly Assembly Domain = typeof(Domain.AssemblyMarker).Assembly;
-    private static readonly Assembly Application = typeof(Application.AssemblyMarker).Assembly;
+    private static readonly Assembly Domain = typeof(global::ErpMcp.Domain.AssemblyMarker).Assembly;
+    private static readonly Assembly Application = typeof(global::ErpMcp.Application.AssemblyMarker).Assembly;
 
     [Fact]
     public void Domain_references_no_other_project_layer() =>

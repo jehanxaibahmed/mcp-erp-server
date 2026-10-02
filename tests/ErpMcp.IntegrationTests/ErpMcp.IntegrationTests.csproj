@@ -1,11 +1,14 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="ModelContextProtocol" />
     <PackageReference Include="Testcontainers.PostgreSql" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\ErpMcp.Infrastructure\ErpMcp.Infrastructure.csproj" />
+    <!-- Referenced so the server binary is built and copied next to the tests for end-to-end runs. -->
+    <ProjectReference Include="..\..\src\ErpMcp.Server\ErpMcp.Server.csproj" />
   </ItemGroup>
 
 </Project>

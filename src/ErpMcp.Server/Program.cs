@@ -1,4 +1,6 @@
+using ErpMcp.Application;
 using ErpMcp.Infrastructure;
+using ErpMcp.Server;
 using ErpMcp.Infrastructure.Persistence;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -23,7 +25,9 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 // stdout carries the MCP JSON-RPC stream, so every log line must go to stderr.
 builder.Logging.AddConsole(options => options.LogToStandardErrorThreshold = LogLevel.Trace);
 
-builder.Services.AddInfrastructure(builder.Configuration);
+builder.Services
+    .AddApplication()
+    .AddInfrastructure(builder.Configuration);
 
 if (command == "migrate")
 {
@@ -35,6 +39,7 @@ if (command == "migrate")
 builder.Services
     .AddMcpServer()
     .WithStdioServerTransport()
-    .WithToolsFromAssembly();
+    .WithToolsFromAssembly(serializerOptions: ToolJson.Options)
+    .WithRequestFilters(filters => filters.AddCallToolFilter(ToolErrorFilter.Apply));
 
 await builder.Build().RunAsync();

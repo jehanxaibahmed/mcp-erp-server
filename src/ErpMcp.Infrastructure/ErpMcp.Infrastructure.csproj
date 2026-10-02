@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
+    <PackageReference Include="Dapper" />
     <PackageReference Include="dbup-postgresql" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
@@ -9,6 +10,10 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ErpMcp.Application\ErpMcp.Application.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ErpMcp.IntegrationTests" />
   </ItemGroup>
 
   <ItemGroup>
