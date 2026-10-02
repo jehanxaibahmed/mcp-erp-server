@@ -8,7 +8,7 @@ public static class AuditOutcomes
     /// <summary>Classifies an exception raised while handling an action.</summary>
     public static AuditOutcome Classify(Exception ex) => ex switch
     {
-        PermissionDeniedException => AuditOutcome.Denied,
+        PermissionDeniedException or AuditUnavailableException => AuditOutcome.Denied,
         InputValidationException => AuditOutcome.Invalid,
         NotFoundException => AuditOutcome.NotFound,
         DomainRuleViolationException => AuditOutcome.Rejected,

@@ -42,22 +42,55 @@ could, they could probe what other sessions have been doing.
 
 ## Guarantees and limits
 
-- **Append-only.** A statement-level trigger rejects `UPDATE`, `DELETE` and `TRUNCATE` on
-  `audit.events`. A database superuser can still disable the trigger. In production you would
-  also give the application role `INSERT`-only grants and ship events to an external store.
+- **Append-only, twice over.** A statement-level trigger rejects `UPDATE`, `DELETE` and
+  `TRUNCATE` on `audit.events`. Separately, the `erp_app` role created by migration `0005` only
+  has `INSERT`/`SELECT` on it, and as a non-owner it can't disable the trigger either. Run the
+  server as an `erp_app` member (see below) and both protections apply.
 - **Refused calls are recorded too.** The audit filter sits inside the error filter but outside
   the scope and argument checks, so denied and invalid calls appear with their reason.
 - **Cancelled calls are recorded.** The audit write uses its own token.
-- **Fail-open on audit write errors.** If the insert fails, the tool result is still returned and
-  the server logs `AUDIT WRITE FAILED` at Error level on stderr. Failing reads because the audit
-  store is down would make it a single point of failure. Change this in `ToolCallAuditor` if your
-  compliance regime requires fail-closed.
+- **Failure mode is configurable** (`Audit:FailureMode`):
+  - `Open` (default): one event per call, written afterwards. If the write fails, the result is
+    still returned and `AUDIT WRITE FAILED` is logged at Error level. This favours availability.
+  - `Closed`: a `started` event is written **before** the tool runs. If that fails, the call is
+    refused with *"The audit trail is unavailable… Nothing was executed."* The outcome event follows
+    with the same `call_id`. This favours compliance, because nothing happens unrecorded.
 - **Redaction.** Argument names listed in `Audit:RedactedArguments` are stored as `"[redacted]"`.
   Payloads over `Audit:MaxStoredArgumentBytes` are stored as `{"_truncated": true, "_bytes": n}`.
 
+- **Log shipping.** With `Audit:EmitToLog: true`, every event is also written as a structured log
+  line (event name `AuditEvent`) to stderr. Pair it with the JSON console formatter
+  (`Logging__Console__FormatterName=json`) and any log collector gets an off-box copy.
+
 ```json
 "Audit": {
+  "FailureMode": "Closed",
+  "EmitToLog": true,
   "RedactedArguments": ["notes"],
   "MaxStoredArgumentBytes": 8192
 }
 ```
+
+## Least-privilege database roles
+
+Migration `0005` creates two `NOLOGIN` group roles (skipped with a notice if the migration user
+can't create roles, as on some managed databases):
+
+| Role | Can | Cannot |
+| --- | --- | --- |
+| `erp_app` | Read and write ERP tables; `INSERT`/`SELECT` audit events | `UPDATE`/`DELETE` audit, `DELETE` ERP rows, any DDL, disable triggers, read migration journals |
+| `erp_auditor` | `SELECT` audit events | Write anything; read ERP data |
+
+To run the server as `erp_app`, keep the owner only for migrations:
+
+```sql
+CREATE ROLE erp_mcp LOGIN PASSWORD 'change-me' IN ROLE erp_app;
+```
+
+```bash
+Database__ConnectionString="Host=…;Username=erp_mcp;Password=change-me;Database=erp"
+Database__MigrationConnectionString="Host=…;Username=erp;Password=…;Database=erp"
+```
+
+Integration tests log in as a real `erp_app` member, run the whole order workflow, and check
+that every forbidden statement above fails with `42501 insufficient_privilege`.

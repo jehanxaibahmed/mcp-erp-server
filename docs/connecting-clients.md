@@ -19,6 +19,8 @@ point at the Compose database. Override anything with environment variables:
 | `Database__ConnectionString` | Compose database | Where the ERP lives |
 | `Security__Scopes` | `read` | Granted scopes; add `orders:draft` to allow drafting ([security.md](security.md)) |
 | `Database__MigrateOnStartup` | `true` | Apply pending migrations at start-up |
+| `Database__MigrationConnectionString` | same as above | Owner connection for migrations, so the server can run as `erp_app` |
+| `Audit__FailureMode` | `Open` | `Closed` refuses calls when the audit trail can't be written |
 | `Audit__RedactedArguments__0` | — | Argument names to redact in the audit trail |
 
 In the snippets below, replace `/ABS/PATH` with the absolute path to this repository.

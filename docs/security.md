@@ -66,7 +66,14 @@ generic error, and details go only to the server's stderr log.
 
 ## 5. Everything is audited
 
-Every call, including refused ones, is written to an append-only table. See [audit.md](audit.md).
+Every call, including refused ones, is written to an append-only table. You can choose
+fail-closed mode (no audit, no action) and log shipping. See [audit.md](audit.md).
+
+## 6. Least-privilege database access
+
+The server can run as the `erp_app` role. It can do its job, but it can't alter the schema,
+delete ERP records, or rewrite audit history, even if the process is compromised. Migrations
+use a separate owner connection. See [audit.md](audit.md#least-privilege-database-roles).
 
 ## Filter pipeline
 
