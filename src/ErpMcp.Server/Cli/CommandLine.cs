@@ -71,6 +71,9 @@ internal sealed record CommandLine(
           erp-mcp orders show <order-number>        Show an order with its lines and review flags
           erp-mcp orders approve <order-number> --by <you@example.com>
           erp-mcp orders reject  <order-number> --by <you@example.com> --reason "<why>"
+          erp-mcp orders fulfil  <order-number> --by <you@example.com>   Ship it: consumes reserved stock
+          erp-mcp orders cancel  <order-number> --by <you@example.com> --reason "<why>"
+                                                    Cancel; releases reserved stock
 
           erp-mcp audit [--limit N] [--action <tool>] [--outcome <outcome>] [--actor <id>]
                                                     Show recent audit events, newest first

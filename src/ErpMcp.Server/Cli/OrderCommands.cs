@@ -20,6 +20,7 @@ internal static class OrderCommands
         await using var scope = services.CreateAsyncScope();
         var approvals = scope.ServiceProvider.GetRequiredService<OrderApprovalService>();
         var queries = scope.ServiceProvider.GetRequiredService<OrderQueries>();
+        var fulfilment = scope.ServiceProvider.GetRequiredService<OrderFulfilmentService>();
         var audit = ActivatorUtilities.CreateInstance<CliAudit>(scope.ServiceProvider);
 
         try
@@ -42,7 +43,8 @@ internal static class OrderCommands
                         new { orderNumber = cli.Positional(2) },
                         () => approvals.ApproveAsync(cli.Positional(2), cli.Option("--by"), ct),
                         o => o.OrderNumber);
-                    output.WriteLine($"Approved {approved.OrderNumber} ({Money(approved.TotalAmount)}) for {approved.CustomerName}.");
+                    output.WriteLine($"Approved {approved.OrderNumber} ({Money(approved.TotalAmount)}) for {approved.CustomerName}. Stock reserved:");
+                    WriteAllocations(approved, output);
                     return 0;
 
                 case "reject":
@@ -53,6 +55,26 @@ internal static class OrderCommands
                         () => approvals.RejectAsync(cli.Positional(2), cli.Option("--by"), cli.Option("--reason"), ct),
                         o => o.OrderNumber);
                     output.WriteLine($"Rejected {rejected.OrderNumber}: {rejected.RejectionReason}");
+                    return 0;
+
+                case "fulfil":
+                    var fulfilled = await audit.RunAsync(
+                        "orders.fulfil",
+                        cli.Option("--by"),
+                        new { orderNumber = cli.Positional(2) },
+                        () => fulfilment.FulfilAsync(cli.Positional(2), cli.Option("--by"), ct),
+                        o => o.OrderNumber);
+                    output.WriteLine($"Fulfilled {fulfilled.OrderNumber}: {fulfilled.Allocations.Sum(a => a.Quantity)} units shipped from {string.Join(", ", fulfilled.Allocations.Select(a => a.WarehouseCode).Distinct())}.");
+                    return 0;
+
+                case "cancel":
+                    var cancelled = await audit.RunAsync(
+                        "orders.cancel",
+                        cli.Option("--by"),
+                        new { orderNumber = cli.Positional(2), reason = cli.Option("--reason") },
+                        () => fulfilment.CancelAsync(cli.Positional(2), cli.Option("--by"), cli.Option("--reason"), ct),
+                        o => o.OrderNumber);
+                    output.WriteLine($"Cancelled {cancelled.OrderNumber}: {cancelled.CancellationReason}");
                     return 0;
 
                 default:
@@ -94,6 +116,16 @@ internal static class OrderCommands
             output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Decided {order.DecidedAt?.UtcDateTime:yyyy-MM-dd HH:mm} UTC by {order.DecidedBy}"));
         }
 
+        if (order.ClosedBy is not null)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"Closed {order.ClosedAt?.UtcDateTime:yyyy-MM-dd HH:mm} UTC by {order.ClosedBy}"));
+        }
+
+        if (order.CancellationReason is not null)
+        {
+            output.WriteLine($"Cancellation reason: {order.CancellationReason}");
+        }
+
         if (order.RejectionReason is not null)
         {
             output.WriteLine($"Rejection reason: {order.RejectionReason}");
@@ -113,6 +145,13 @@ internal static class OrderCommands
 
         output.WriteLine($"  Total: {Money(order.TotalAmount)}");
 
+        if (order.Allocations.Count > 0)
+        {
+            output.WriteLine();
+            output.WriteLine(order.Status == OrderStatus.Fulfilled ? "Shipped from:" : "Reserved stock:");
+            WriteAllocations(order, output);
+        }
+
         if (order.ReviewFlags.Count > 0)
         {
             output.WriteLine();
@@ -121,6 +160,14 @@ internal static class OrderCommands
             {
                 output.WriteLine($"  ! {flag}");
             }
+        }
+    }
+
+    private static void WriteAllocations(Order order, TextWriter output)
+    {
+        foreach (var a in order.Allocations)
+        {
+            output.WriteLine(string.Create(CultureInfo.InvariantCulture, $"  line {a.LineNumber,2}  {a.Sku}  {a.Quantity,6} from {a.WarehouseCode}"));
         }
     }
 

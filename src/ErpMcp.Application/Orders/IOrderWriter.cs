@@ -1,3 +1,4 @@
+using ErpMcp.Domain.Inventory;
 using ErpMcp.Domain.Orders;
 
 namespace ErpMcp.Application.Orders;
@@ -15,11 +16,30 @@ public interface IOrderWriter
         DraftOrder draft, string createdBy, string? idempotencyKey, DateTimeOffset createdAt, CancellationToken ct);
 
     /// <summary>
-    /// Records an approval decision only if the order is still pending (optimistic concurrency).
+    /// Rejects the order only if it is still pending (optimistic concurrency).
     /// Returns false when someone else decided first.
     /// </summary>
-    Task<bool> TryRecordDecisionAsync(
-        long orderId, OrderStatus decision, string decidedBy, string? rejectionReason, DateTimeOffset decidedAt, CancellationToken ct);
+    Task<bool> TryRejectAsync(long orderId, string decidedBy, string reason, DateTimeOffset decidedAt, CancellationToken ct);
+
+    /// <summary>
+    /// Approves a pending order and reserves its stock in one transaction. The stock rows involved
+    /// are locked, then <paramref name="allocate"/> decides where the stock comes from. If it
+    /// throws, nothing is changed. Returns false when the order was no longer pending.
+    /// </summary>
+    Task<bool> TryApproveAndReserveAsync(
+        long orderId,
+        string decidedBy,
+        DateTimeOffset decidedAt,
+        Func<IReadOnlyList<StockAvailability>, IReadOnlyList<StockAllocation>> allocate,
+        CancellationToken ct);
+
+    /// <summary>
+    /// Moves an order from <paramref name="expected"/> to fulfilled or cancelled, consuming or
+    /// releasing its reserved stock. Returns false when the order was no longer in <paramref name="expected"/>.
+    /// </summary>
+    Task<bool> TryCloseAsync(
+        long orderId, OrderStatus expected, OrderStatus closeAs, string closedBy, string? cancellationReason,
+        DateTimeOffset closedAt, CancellationToken ct);
 }
 
 public sealed record DraftInsertResult(string OrderNumber, bool Inserted);

@@ -15,7 +15,20 @@ public sealed record Order(
     string? Notes,
     decimal TotalAmount,
     IReadOnlyList<string> ReviewFlags,
-    IReadOnlyList<OrderLine> Lines);
+    IReadOnlyList<OrderLine> Lines)
+{
+    /// <summary>Who fulfilled or cancelled the order, once it has left the active states.</summary>
+    public string? ClosedBy { get; init; }
+
+    public DateTimeOffset? ClosedAt { get; init; }
+
+    public string? CancellationReason { get; init; }
+
+    /// <summary>Warehouse reservations made when the order was approved.</summary>
+    public IReadOnlyList<OrderAllocation> Allocations { get; init; } = [];
+}
+
+public sealed record OrderAllocation(int LineNumber, string Sku, string WarehouseCode, int Quantity);
 
 public sealed record OrderLine(
     int LineNumber,

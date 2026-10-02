@@ -68,6 +68,38 @@ public static partial class Guard
         return trimmed.ToLowerInvariant();
     }
 
+    /// <summary>
+    /// An <see cref="Actor"/> that must be a person. Order decisions and warehouse actions are
+    /// never accepted from an <c>agent:</c> identity.
+    /// </summary>
+    public static string PersonActor(string? value, string field)
+    {
+        var actor = Actor(value, field);
+        if (actor.StartsWith(AgentActor.Prefix, StringComparison.Ordinal))
+        {
+            throw new Domain.Common.DomainRuleViolationException("This action must be performed by a person, not an agent identity.");
+        }
+
+        return actor;
+    }
+
+    /// <summary>Required free-text reason, trimmed and length-limited.</summary>
+    public static string Reason(string? value, string field, int maxLength)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            throw new InputValidationException(field, "is required.");
+        }
+
+        var trimmed = value.Trim();
+        if (trimmed.Length > maxLength)
+        {
+            throw new InputValidationException(field, $"must be at most {maxLength} characters.");
+        }
+
+        return trimmed;
+    }
+
     public static int InRange(int value, int min, int max, string field)
     {
         if (value < min || value > max)

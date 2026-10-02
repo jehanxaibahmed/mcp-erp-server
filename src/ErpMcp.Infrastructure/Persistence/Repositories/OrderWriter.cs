@@ -1,6 +1,7 @@
 using Dapper;
 using ErpMcp.Application.Common;
 using ErpMcp.Application.Orders;
+using ErpMcp.Domain.Inventory;
 using ErpMcp.Domain.Orders;
 using Npgsql;
 
@@ -74,25 +75,138 @@ internal sealed class OrderWriter(NpgsqlDataSource db) : IOrderWriter
         }
     }
 
-    public async Task<bool> TryRecordDecisionAsync(
-        long orderId, OrderStatus decision, string decidedBy, string? rejectionReason, DateTimeOffset decidedAt, CancellationToken ct)
+    public async Task<bool> TryRejectAsync(
+        long orderId, string decidedBy, string reason, DateTimeOffset decidedAt, CancellationToken ct)
     {
         await using var connection = await db.OpenConnectionAsync(ct);
         var updated = await connection.ExecuteAsync(new CommandDefinition("""
             UPDATE erp.orders
-            SET status = @Status, decided_by = @DecidedBy, decided_at = @DecidedAt, rejection_reason = @RejectionReason
+            SET status = 'rejected', decided_by = @DecidedBy, decided_at = @DecidedAt, rejection_reason = @Reason
             WHERE id = @OrderId AND status = 'pending_approval'
+            """,
+            new { OrderId = orderId, DecidedBy = decidedBy, DecidedAt = decidedAt.UtcDateTime, Reason = reason },
+            cancellationToken: ct));
+
+        return updated == 1;
+    }
+
+    public async Task<bool> TryApproveAndReserveAsync(
+        long orderId,
+        string decidedBy,
+        DateTimeOffset decidedAt,
+        Func<IReadOnlyList<StockAvailability>, IReadOnlyList<StockAllocation>> allocate,
+        CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        if (!await LockOrderInStatusAsync(connection, transaction, orderId, "pending_approval", ct))
+        {
+            return false;
+        }
+
+        // Lock every stock row the order could draw from, in key order so concurrent approvals
+        // touching the same products queue up instead of deadlocking.
+        var stock = (await connection.QueryAsync<StockAvailability>(new CommandDefinition("""
+            SELECT s.product_id AS ProductId, p.sku AS Sku, s.warehouse_id AS WarehouseId, w.code AS WarehouseCode,
+                   s.quantity_on_hand - s.quantity_reserved AS Available
+            FROM erp.stock_levels s
+            JOIN erp.products p ON p.id = s.product_id
+            JOIN erp.warehouses w ON w.id = s.warehouse_id
+            WHERE s.product_id IN (SELECT product_id FROM erp.order_lines WHERE order_id = @orderId)
+            ORDER BY s.product_id, s.warehouse_id
+            FOR UPDATE OF s
+            """, new { orderId }, transaction, cancellationToken: ct))).ToList();
+
+        var allocations = allocate(stock);
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE erp.stock_levels
+            SET quantity_reserved = quantity_reserved + @Quantity, updated_at = now()
+            WHERE product_id = @ProductId AND warehouse_id = @WarehouseId
+            """, allocations, transaction, cancellationToken: ct));
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            INSERT INTO erp.order_allocations (order_id, line_number, product_id, warehouse_id, quantity)
+            VALUES (@OrderId, @LineNumber, @ProductId, @WarehouseId, @Quantity)
+            """,
+            allocations.Select(a => new { OrderId = orderId, a.LineNumber, a.ProductId, a.WarehouseId, a.Quantity }),
+            transaction,
+            cancellationToken: ct));
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE erp.orders SET status = 'approved', decided_by = @DecidedBy, decided_at = @DecidedAt
+            WHERE id = @OrderId
+            """,
+            new { OrderId = orderId, DecidedBy = decidedBy, DecidedAt = decidedAt.UtcDateTime },
+            transaction,
+            cancellationToken: ct));
+
+        await transaction.CommitAsync(ct);
+        return true;
+    }
+
+    public async Task<bool> TryCloseAsync(
+        long orderId, OrderStatus expected, OrderStatus closeAs, string closedBy, string? cancellationReason,
+        DateTimeOffset closedAt, CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        await using var transaction = await connection.BeginTransactionAsync(ct);
+
+        if (!await LockOrderInStatusAsync(connection, transaction, orderId, SnakeCase.From(expected), ct))
+        {
+            return false;
+        }
+
+        if (expected == OrderStatus.Approved)
+        {
+            // Fulfilling ships the reserved stock; cancelling puts it back on the shelf.
+            var consume = closeAs == OrderStatus.Fulfilled;
+            await connection.ExecuteAsync(new CommandDefinition("""
+                UPDATE erp.stock_levels s
+                SET quantity_reserved = s.quantity_reserved - a.quantity,
+                    quantity_on_hand  = s.quantity_on_hand - CASE WHEN @Consume THEN a.quantity ELSE 0 END,
+                    updated_at = now()
+                FROM erp.order_allocations a
+                WHERE a.order_id = @OrderId AND s.product_id = a.product_id AND s.warehouse_id = a.warehouse_id
+                """, new { OrderId = orderId, Consume = consume }, transaction, cancellationToken: ct));
+        }
+
+        await connection.ExecuteAsync(new CommandDefinition("""
+            UPDATE erp.orders
+            SET status = @Status,
+                closed_by = @ClosedBy,
+                closed_at = @ClosedAt,
+                cancellation_reason = @Reason,
+                -- Cancelling straight from the approval queue is also the approval decision.
+                decided_by = coalesce(decided_by, @ClosedBy),
+                decided_at = coalesce(decided_at, @ClosedAt)
+            WHERE id = @OrderId
             """,
             new
             {
                 OrderId = orderId,
-                Status = SnakeCase.From(decision),
-                DecidedBy = decidedBy,
-                DecidedAt = decidedAt.UtcDateTime,
-                RejectionReason = rejectionReason,
+                Status = SnakeCase.From(closeAs),
+                ClosedBy = closedBy,
+                ClosedAt = closedAt.UtcDateTime,
+                Reason = cancellationReason,
             },
+            transaction,
             cancellationToken: ct));
 
-        return updated == 1;
+        await transaction.CommitAsync(ct);
+        return true;
+    }
+
+    private static async Task<bool> LockOrderInStatusAsync(
+        NpgsqlConnection connection, NpgsqlTransaction transaction, long orderId, string status, CancellationToken ct)
+    {
+        var current = await connection.QuerySingleOrDefaultAsync<string>(new CommandDefinition(
+            "SELECT status FROM erp.orders WHERE id = @orderId FOR UPDATE",
+            new { orderId },
+            transaction,
+            cancellationToken: ct));
+
+        return current == status;
     }
 }
