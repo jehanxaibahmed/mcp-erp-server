@@ -12,10 +12,11 @@ public class DatabaseMigratorTests(PostgresFixture db)
     [InlineData("erp.customers", 20)]
     [InlineData("erp.products", 30)]
     [InlineData("erp.warehouses", 3)]
-    [InlineData("erp.orders", 60)]
-    public async Task Sample_data_is_loaded(string table, long expectedRows)
+    // Other tests add drafts, so count only the seeded orders.
+    [InlineData("erp.orders WHERE created_by IN ('agent:sample', 'sales.team@example.com')", 60)]
+    public async Task Sample_data_is_loaded(string tableAndFilter, long expectedRows)
     {
-        (await ScalarAsync<long>($"SELECT count(*) FROM {table}")).ShouldBe(expectedRows);
+        (await ScalarAsync<long>($"SELECT count(*) FROM {tableAndFilter}")).ShouldBe(expectedRows);
     }
 
     [Fact]

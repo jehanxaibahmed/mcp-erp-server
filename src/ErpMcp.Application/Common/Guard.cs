@@ -39,6 +39,35 @@ public static partial class Guard
         return trimmed;
     }
 
+    /// <summary>Optional client-chosen key that makes a create request safe to retry.</summary>
+    public static string? IdempotencyKey(string? value, string field = "idempotencyKey")
+    {
+        if (string.IsNullOrWhiteSpace(value))
+        {
+            return null;
+        }
+
+        var trimmed = value.Trim();
+        if (!IdempotencyKeyPattern().IsMatch(trimmed))
+        {
+            throw new InputValidationException(field, "must be 8-100 characters of letters, digits, '.', '_', ':' or '-'.");
+        }
+
+        return trimmed;
+    }
+
+    /// <summary>Who performed an action: an email address or a short identifier, stored in the audit trail.</summary>
+    public static string Actor(string? value, string field)
+    {
+        var trimmed = value?.Trim();
+        if (string.IsNullOrEmpty(trimmed) || !ActorPattern().IsMatch(trimmed))
+        {
+            throw new InputValidationException(field, "must be an email address or identifier (3-100 characters, no spaces).");
+        }
+
+        return trimmed.ToLowerInvariant();
+    }
+
     public static int InRange(int value, int min, int max, string field)
     {
         if (value < min || value > max)
@@ -96,4 +125,10 @@ public static partial class Guard
 
     [GeneratedRegex("^WH-[A-Z]{3}$")]
     private static partial Regex WarehouseCodePattern();
+
+    [GeneratedRegex("^[A-Za-z0-9._:-]{8,100}$")]
+    private static partial Regex IdempotencyKeyPattern();
+
+    [GeneratedRegex("^[A-Za-z0-9._:@+-]{3,100}$")]
+    private static partial Regex ActorPattern();
 }

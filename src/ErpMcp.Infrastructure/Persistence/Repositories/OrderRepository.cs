@@ -54,7 +54,7 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
             SELECT o.id AS Id, o.order_number AS OrderNumber, c.code AS CustomerCode, c.name AS CustomerName,
                    o.status AS Status, o.source AS Source, o.created_by AS CreatedBy, o.created_at AS CreatedAt,
                    o.decided_by AS DecidedBy, o.decided_at AS DecidedAt, o.rejection_reason AS RejectionReason,
-                   o.notes AS Notes, o.total_amount AS TotalAmount
+                   o.notes AS Notes, o.total_amount AS TotalAmount, o.review_flags AS ReviewFlags
             FROM erp.orders o JOIN erp.customers c ON c.id = o.customer_id
             WHERE o.order_number = @orderNumber;
 
@@ -90,15 +90,29 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
             SqlText.AsUtc(CreatedAt), TotalAmount, LineCount);
     }
 
-    private sealed record OrderRow(
-        long Id, string OrderNumber, string CustomerCode, string CustomerName, string Status, string Source,
-        string CreatedBy, DateTime CreatedAt, string? DecidedBy, DateTime? DecidedAt, string? RejectionReason,
-        string? Notes, decimal TotalAmount)
+    // A class with settable properties rather than a positional record: Dapper's constructor
+    // matching cannot bind Postgres text[] (reported as System.Array) to a string[] parameter.
+    private sealed class OrderRow
     {
+        public long Id { get; init; }
+        public string OrderNumber { get; init; } = "";
+        public string CustomerCode { get; init; } = "";
+        public string CustomerName { get; init; } = "";
+        public string Status { get; init; } = "";
+        public string Source { get; init; } = "";
+        public string CreatedBy { get; init; } = "";
+        public DateTime CreatedAt { get; init; }
+        public string? DecidedBy { get; init; }
+        public DateTime? DecidedAt { get; init; }
+        public string? RejectionReason { get; init; }
+        public string? Notes { get; init; }
+        public decimal TotalAmount { get; init; }
+        public string[] ReviewFlags { get; init; } = [];
+
         public Order ToDomain(IReadOnlyList<OrderLine> lines) => new(
             Id, OrderNumber, CustomerCode, CustomerName,
             SnakeCase.To<OrderStatus>(Status), SnakeCase.To<OrderSource>(Source),
             CreatedBy, SqlText.AsUtc(CreatedAt), DecidedBy, SqlText.AsUtc(DecidedAt),
-            RejectionReason, Notes, TotalAmount, lines);
+            RejectionReason, Notes, TotalAmount, ReviewFlags, lines);
     }
 }

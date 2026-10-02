@@ -18,6 +18,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="ErpMcp.UnitTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Update="appsettings*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 

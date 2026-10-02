@@ -47,3 +47,25 @@ capped at 100.
   ]
 }
 ```
+
+## Write tool
+
+| Tool | Arguments | Returns |
+| --- | --- | --- |
+| `create_draft_order` | `customerCode`, `lines[]` (`{ sku, quantity }`), `notes?`, `idempotencyKey?` | `{ message, alreadyExisted, order }` |
+
+Annotated `readOnlyHint: false`, `destructiveHint: false`, `idempotentHint: false`.
+
+This is the **only** tool that writes, and it can only create orders in `pending_approval`.
+Agents cannot approve, reject, fulfil or cancel orders, and cannot set prices. See
+[approval-workflow.md](approval-workflow.md).
+
+- **Hard rules** fail the call with `isError: true`: an inactive or closed customer, an unknown
+  or discontinued SKU, a duplicate SKU, a quantity outside 1–10,000, more than 50 lines, or notes
+  longer than 500 characters.
+- **Soft concerns** create the draft but attach `reviewFlags` for the approver, such as
+  `Insufficient stock for BEV-0001: requested 400, available 372.` or
+  `Exceeds credit limit: open orders £0.00 + this order £5,916.00 > limit £5,000.00.`
+- **Retries**: pass an `idempotencyKey` (8–100 chars). Repeating the call with the same key and
+  the same lines returns the original draft with `alreadyExisted: true`. Reusing a key for
+  different lines is an error.

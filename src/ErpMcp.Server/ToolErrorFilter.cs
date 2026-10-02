@@ -1,4 +1,5 @@
 using ErpMcp.Application.Common;
+using ErpMcp.Domain.Common;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
@@ -21,11 +22,17 @@ internal static class ToolErrorFilter
             }
             catch (ErpException ex)
             {
-                return new CallToolResult
-                {
-                    IsError = true,
-                    Content = [new TextContentBlock { Text = ex.Message }],
-                };
+                return Error(ex.Message);
+            }
+            catch (DomainRuleViolationException ex)
+            {
+                return Error(ex.Message);
             }
         };
+
+    private static CallToolResult Error(string message) => new()
+    {
+        IsError = true,
+        Content = [new TextContentBlock { Text = message }],
+    };
 }

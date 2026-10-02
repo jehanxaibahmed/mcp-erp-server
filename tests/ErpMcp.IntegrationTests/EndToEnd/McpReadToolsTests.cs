@@ -14,7 +14,9 @@ public class McpReadToolsTests(PostgresFixture db)
     {
         var client = await db.GetMcpClientAsync();
 
-        var tools = await client.ListToolsAsync(cancellationToken: Ct);
+        var tools = (await client.ListToolsAsync(cancellationToken: Ct))
+            .Where(t => t.ProtocolTool.Annotations?.ReadOnlyHint == true)
+            .ToList();
 
         tools.Select(t => t.Name).ShouldBe(
             [
@@ -22,7 +24,6 @@ public class McpReadToolsTests(PostgresFixture db)
                 "list_low_stock", "list_orders", "list_product_categories", "search_customers", "search_products",
             ],
             ignoreOrder: true);
-        tools.ShouldAllBe(t => t.ProtocolTool.Annotations!.ReadOnlyHint == true);
     }
 
     [Fact]

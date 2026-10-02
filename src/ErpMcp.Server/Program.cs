@@ -1,24 +1,34 @@
 using ErpMcp.Application;
 using ErpMcp.Infrastructure;
-using ErpMcp.Server;
 using ErpMcp.Infrastructure.Persistence;
+using ErpMcp.Server;
+using ErpMcp.Server.Cli;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 
-// Usage:
-//   erp-mcp                     run the MCP server over stdio
-//   erp-mcp migrate [--seed]    apply schema migrations (and optionally sample data), then exit
-// Any other --Section:Key=value arguments override configuration as usual.
-var command = args.FirstOrDefault() == "migrate" ? "migrate" : "serve";
-var seed = args.Contains("--seed");
-var configArgs = args.Where(a => a is not ("migrate" or "--seed")).ToArray();
+CommandLine cli;
+try
+{
+    cli = CommandLine.Parse(args);
+}
+catch (ArgumentException ex)
+{
+    await Console.Error.WriteLineAsync($"error: {ex.Message}");
+    return 2;
+}
+
+if (cli.Has("--help"))
+{
+    Console.WriteLine(CommandLine.Usage);
+    return 0;
+}
 
 // MCP clients launch the server from arbitrary working directories, so resolve appsettings
 // relative to the executable rather than the current directory.
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
 {
-    Args = configArgs,
+    Args = cli.ConfigurationArgs,
     ContentRootPath = AppContext.BaseDirectory,
 });
 
@@ -29,11 +39,23 @@ builder.Services
     .AddApplication()
     .AddInfrastructure(builder.Configuration);
 
-if (command == "migrate")
+if (cli.Is("migrate"))
 {
-    using var migrationHost = builder.Build();
-    migrationHost.Services.GetRequiredService<DatabaseMigrator>().Migrate(seed);
-    return;
+    using var host = builder.Build();
+    host.Services.GetRequiredService<DatabaseMigrator>().Migrate(cli.Has("--seed"));
+    return 0;
+}
+
+if (cli.Is("orders"))
+{
+    using var host = builder.Build();
+    return await OrderCommands.RunAsync(cli, host.Services, Console.Out, CancellationToken.None);
+}
+
+if (cli.Command.Count > 0)
+{
+    await Console.Error.WriteLineAsync($"error: unknown command '{cli.Command[0]}'.\n\n{CommandLine.Usage}");
+    return 2;
 }
 
 builder.Services
@@ -43,3 +65,4 @@ builder.Services
     .WithRequestFilters(filters => filters.AddCallToolFilter(ToolErrorFilter.Apply));
 
 await builder.Build().RunAsync();
+return 0;

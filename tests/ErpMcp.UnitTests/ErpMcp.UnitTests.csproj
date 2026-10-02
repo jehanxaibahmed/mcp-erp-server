@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\ErpMcp.Domain\ErpMcp.Domain.csproj" />
     <ProjectReference Include="..\..\src\ErpMcp.Application\ErpMcp.Application.csproj" />
+    <ProjectReference Include="..\..\src\ErpMcp.Server\ErpMcp.Server.csproj" />
   </ItemGroup>
 
 </Project>
