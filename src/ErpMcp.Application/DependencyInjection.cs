@@ -17,6 +17,7 @@ public static class DependencyInjection
         services.AddScoped<OrderQueries>();
         services.AddScoped<DraftOrderService>();
         services.AddScoped<OrderApprovalService>();
+        services.AddScoped<OrderFulfilmentService>();
         services.TryAddSingleton(TimeProvider.System);
         return services;
     }

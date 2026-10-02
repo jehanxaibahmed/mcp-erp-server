@@ -1,5 +1,6 @@
 using ErpMcp.Application.Common;
 using ErpMcp.Domain.Common;
+using ErpMcp.Domain.Inventory;
 using ErpMcp.Domain.Orders;
 
 namespace ErpMcp.Application.Orders;
@@ -15,33 +16,30 @@ public sealed class OrderApprovalService(IOrderRepository orders, IOrderWriter w
     public Task<PagedResult<OrderSummary>> ListPendingAsync(int? limit, CancellationToken ct) =>
         orders.ListAsync(new OrderFilter(null, OrderStatus.PendingApproval, null, null), PageRequest.Create(limit), ct);
 
+    /// <summary>Approves the order and reserves its stock across warehouses.</summary>
     public Task<Order> ApproveAsync(string? orderNumber, string? approver, CancellationToken ct) =>
-        DecideAsync(orderNumber, approver, OrderStatus.Approved, reason: null, ct);
+        DecideAsync(orderNumber, approver, OrderStatus.Approved, (order, decidedBy, at) =>
+            writer.TryApproveAndReserveAsync(order.Id, decidedBy, at, stock => StockAllocator.Allocate(
+                order.OrderNumber,
+                order.Lines.Select(l => new AllocationRequest(l.LineNumber, l.Sku, l.Quantity)).ToList(),
+                stock), ct), ct);
 
     public Task<Order> RejectAsync(string? orderNumber, string? approver, string? reason, CancellationToken ct)
     {
-        if (string.IsNullOrWhiteSpace(reason))
-        {
-            throw new InputValidationException("reason", "is required when rejecting an order.");
-        }
-
-        if (reason.Length > MaxReasonLength)
-        {
-            throw new InputValidationException("reason", $"must be at most {MaxReasonLength} characters.");
-        }
-
-        return DecideAsync(orderNumber, approver, OrderStatus.Rejected, reason.Trim(), ct);
+        var why = Guard.Reason(reason, "reason", MaxReasonLength);
+        return DecideAsync(orderNumber, approver, OrderStatus.Rejected, (order, decidedBy, at) =>
+            writer.TryRejectAsync(order.Id, decidedBy, why, at, ct), ct);
     }
 
     private async Task<Order> DecideAsync(
-        string? orderNumber, string? approver, OrderStatus decision, string? reason, CancellationToken ct)
+        string? orderNumber,
+        string? approver,
+        OrderStatus decision,
+        Func<Order, string, DateTimeOffset, Task<bool>> record,
+        CancellationToken ct)
     {
         var number = Guard.OrderNumber(orderNumber);
-        var decidedBy = Guard.Actor(approver, "approver");
-        if (decidedBy.StartsWith(AgentActor.Prefix, StringComparison.Ordinal))
-        {
-            throw new DomainRuleViolationException("Orders must be approved or rejected by a person, not an agent identity.");
-        }
+        var decidedBy = Guard.PersonActor(approver, "approver");
 
         var order = await orders.GetByNumberAsync(number, ct) ?? throw new NotFoundException("Order", number);
         OrderStatusRules.EnsureCanTransition(order.OrderNumber, order.Status, decision);
@@ -52,7 +50,7 @@ public sealed class OrderApprovalService(IOrderRepository orders, IOrderWriter w
                 $"{decidedBy} created order {order.OrderNumber} and cannot also decide on it.");
         }
 
-        if (!await writer.TryRecordDecisionAsync(order.Id, decision, decidedBy, reason, clock.GetUtcNow(), ct))
+        if (!await record(order, decidedBy, clock.GetUtcNow()))
         {
             throw new DomainRuleViolationException(
                 $"Order {order.OrderNumber} was decided by someone else in the meantime. Reload it and check.");

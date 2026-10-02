@@ -49,7 +49,8 @@ Then connect a real client (Claude Desktop, Claude Code, VS Code, MCP Inspector)
 # Agent (with Security__Scopes="read orders:draft") calls create_draft_order → SO-100061 pending
 dotnet run --project src/ErpMcp.Server -- orders pending
 dotnet run --project src/ErpMcp.Server -- orders show SO-100061       # lines + review flags
-dotnet run --project src/ErpMcp.Server -- orders approve SO-100061 --by you@example.com
+dotnet run --project src/ErpMcp.Server -- orders approve SO-100061 --by you@example.com   # reserves stock
+dotnet run --project src/ErpMcp.Server -- orders fulfil  SO-100061 --by warehouse@example.com
 dotnet run --project src/ErpMcp.Server -- audit                       # who did what
 ```
 
@@ -101,7 +102,7 @@ covered too, including idempotent draft retries racing and two approvers decidin
 - [x] Audit log of every tool call
 - [x] Guide for connecting to MCP clients
 - [ ] Streamable HTTP transport with OAuth-backed per-user scopes
-- [ ] Stock reservation on approval
+- [x] Stock reservation on approval, fulfilment and cancellation
 
 ## 📌 Notes
 

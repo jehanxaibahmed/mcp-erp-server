@@ -54,7 +54,8 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
             SELECT o.id AS Id, o.order_number AS OrderNumber, c.code AS CustomerCode, c.name AS CustomerName,
                    o.status AS Status, o.source AS Source, o.created_by AS CreatedBy, o.created_at AS CreatedAt,
                    o.decided_by AS DecidedBy, o.decided_at AS DecidedAt, o.rejection_reason AS RejectionReason,
-                   o.notes AS Notes, o.total_amount AS TotalAmount, o.review_flags AS ReviewFlags
+                   o.notes AS Notes, o.total_amount AS TotalAmount, o.review_flags AS ReviewFlags,
+                   o.closed_by AS ClosedBy, o.closed_at AS ClosedAt, o.cancellation_reason AS CancellationReason
             FROM erp.orders o JOIN erp.customers c ON c.id = o.customer_id
             WHERE o.order_number = @orderNumber;
 
@@ -65,6 +66,14 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
             JOIN erp.products p ON p.id = l.product_id
             WHERE o.order_number = @orderNumber
             ORDER BY l.line_number;
+
+            SELECT a.line_number AS LineNumber, p.sku AS Sku, w.code AS WarehouseCode, a.quantity AS Quantity
+            FROM erp.order_allocations a
+            JOIN erp.orders o ON o.id = a.order_id
+            JOIN erp.products p ON p.id = a.product_id
+            JOIN erp.warehouses w ON w.id = a.warehouse_id
+            WHERE o.order_number = @orderNumber
+            ORDER BY a.line_number, w.code;
             """, new { orderNumber }, cancellationToken: ct));
 
         var header = await results.ReadSingleOrDefaultAsync<OrderRow>();
@@ -74,7 +83,14 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
         }
 
         var lines = (await results.ReadAsync<OrderLine>()).ToList();
-        return header.ToDomain(lines);
+        var allocations = (await results.ReadAsync<OrderAllocation>()).ToList();
+        return header.ToDomain(lines) with
+        {
+            ClosedBy = header.ClosedBy,
+            ClosedAt = SqlText.AsUtc(header.ClosedAt),
+            CancellationReason = header.CancellationReason,
+            Allocations = allocations,
+        };
     }
 
     private static DateTime? StartOfDayUtc(DateOnly? date) =>
@@ -108,6 +124,9 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
         public string? Notes { get; init; }
         public decimal TotalAmount { get; init; }
         public string[] ReviewFlags { get; init; } = [];
+        public string? ClosedBy { get; init; }
+        public DateTime? ClosedAt { get; init; }
+        public string? CancellationReason { get; init; }
 
         public Order ToDomain(IReadOnlyList<OrderLine> lines) => new(
             Id, OrderNumber, CustomerCode, CustomerName,

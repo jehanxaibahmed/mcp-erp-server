@@ -22,7 +22,7 @@ All read tools are annotated `readOnlyHint: true`, `idempotentHint: true`, `open
 | `get_stock_level` | `sku` | Per-warehouse on-hand, reserved, available and reorder level |
 | `list_low_stock` | `warehouseCode?`, `limit?`, `offset?` | Page of stock rows below reorder level, most urgent first |
 | `list_orders` | `customerCode?`, `status?`, `createdFrom?`, `createdTo?` (YYYY-MM-DD, inclusive), `limit?`, `offset?` | Page of order summaries, newest first |
-| `get_order` | `orderNumber` | Order with lines and approval decision |
+| `get_order` | `orderNumber` | Order with lines, approval decision, review flags, warehouse allocations and fulfilment/cancellation details |
 | `get_server_info` | — | Server name and version |
 
 ### Paging
