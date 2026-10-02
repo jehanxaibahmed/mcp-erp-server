@@ -7,7 +7,7 @@ namespace ErpMcp.Server.Tools;
 [McpServerToolType]
 public static class ServerInfoTools
 {
-    [McpServerTool(Name = "get_server_info", ReadOnly = true, Idempotent = true)]
+    [McpServerTool(Name = "get_server_info", Title = "Server info", ReadOnly = true, Idempotent = true, OpenWorld = false)]
     [Description("Returns the ERP MCP server name and version. Useful as a connectivity check.")]
     public static ServerInfo GetServerInfo() => new(
         Name: "erp-mcp",

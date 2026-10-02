@@ -1,4 +1,9 @@
+using ErpMcp.Application.Catalog;
+using ErpMcp.Application.Customers;
+using ErpMcp.Application.Inventory;
+using ErpMcp.Application.Orders;
 using ErpMcp.Infrastructure.Persistence;
+using ErpMcp.Infrastructure.Persistence.Repositories;
 using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -22,6 +27,10 @@ public static class DependencyInjection
         });
 
         services.AddSingleton<DatabaseMigrator>();
+        services.AddSingleton<ICustomerRepository, CustomerRepository>();
+        services.AddSingleton<IProductRepository, ProductRepository>();
+        services.AddSingleton<IStockRepository, StockRepository>();
+        services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddHostedService<MigrationHostedService>();
 
         return services;
