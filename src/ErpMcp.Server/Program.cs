@@ -4,6 +4,7 @@ using ErpMcp.Infrastructure;
 using ErpMcp.Infrastructure.Persistence;
 using ErpMcp.Server;
 using ErpMcp.Server.Cli;
+using ErpMcp.Server.Http;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
@@ -23,6 +24,11 @@ if (cli.Has("--help"))
 {
     Console.WriteLine(CommandLine.Usage);
     return 0;
+}
+
+if (cli.Is("http"))
+{
+    return await HttpHost.RunAsync(cli);
 }
 
 // MCP clients launch the server from arbitrary working directories, so resolve appsettings

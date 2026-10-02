@@ -18,7 +18,8 @@ and a unit test both fail.
 | `orders:draft` | `create_draft_order` |
 | *(none)* | `get_server_info` |
 
-A server instance is granted scopes through configuration. **The default is `read`**, which
+A server instance is granted scopes through configuration. Over the HTTP transport, the caller's
+OAuth token narrows that grant per request. See [http-transport.md](http-transport.md). **The default is `read`**, which
 expands to every `*:read` scope. Writing must be opted into explicitly:
 
 ```bash

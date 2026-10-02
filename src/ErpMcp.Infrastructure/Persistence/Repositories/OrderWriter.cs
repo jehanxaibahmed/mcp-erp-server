@@ -21,7 +21,7 @@ internal sealed class OrderWriter(NpgsqlDataSource db) : IOrderWriter
     }
 
     public async Task<DraftInsertResult> InsertDraftAsync(
-        DraftOrder draft, string createdBy, string? idempotencyKey, DateTimeOffset createdAt, CancellationToken ct)
+        DraftOrder draft, Requester requester, string? idempotencyKey, DateTimeOffset createdAt, CancellationToken ct)
     {
         await using var connection = await db.OpenConnectionAsync(ct);
         await using var transaction = await connection.BeginTransactionAsync(ct);
@@ -30,15 +30,16 @@ internal sealed class OrderWriter(NpgsqlDataSource db) : IOrderWriter
         {
             var header = await connection.QuerySingleAsync<(long Id, string OrderNumber)>(new CommandDefinition("""
                 INSERT INTO erp.orders (customer_id, status, source, created_by, created_at, notes,
-                                        total_amount, review_flags, idempotency_key)
+                                        total_amount, review_flags, idempotency_key, on_behalf_of)
                 VALUES (@CustomerId, 'pending_approval', 'agent', @CreatedBy, @CreatedAt, @Notes,
-                        @TotalAmount, @ReviewFlags, @IdempotencyKey)
+                        @TotalAmount, @ReviewFlags, @IdempotencyKey, @OnBehalfOf)
                 RETURNING id, order_number
                 """,
                 new
                 {
                     CustomerId = draft.Customer.Id,
-                    CreatedBy = createdBy,
+                    CreatedBy = requester.Actor,
+                    requester.OnBehalfOf,
                     CreatedAt = createdAt.UtcDateTime,
                     draft.Notes,
                     draft.TotalAmount,

@@ -92,6 +92,12 @@ Postgres as `postgres`:
 }
 ```
 
+## Remote over HTTP
+
+For a shared or hosted deployment, run `erp-mcp http`. Clients connect to `/mcp` with an OAuth
+bearer token, and the token's scopes narrow what each user can do. See
+[http-transport.md](http-transport.md) for configuration and a local dev-token walkthrough.
+
 ## MCP Inspector (debugging)
 
 ```bash

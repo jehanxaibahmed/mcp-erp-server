@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using ErpMcp.Server.Security;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Resources;
@@ -13,16 +14,17 @@ namespace ErpMcp.Server.Resources;
 /// Data stays behind tools; resources only describe how to use them.
 /// </remarks>
 [McpServerResourceType]
-public sealed class GuideResource(GrantedScopes granted, ScopeCatalog catalog)
+public sealed class GuideResource(ScopeResolver scopes, ScopeCatalog catalog)
 {
     public const string Uri = "erp://guide";
 
     [McpServerResource(UriTemplate = Uri, Name = "erp_guide", Title = "ERP guide", MimeType = "text/markdown")]
     [Description("How this ERP is organised: code formats, order statuses, approval rules, and the tools this server allows.")]
-    public string Read()
+    public string Read(RequestContext<ReadResourceRequestParams> context)
     {
+        var granted = scopes.Resolve(context.User);
         var tools = catalog.ScopeByTool
-            .Where(t => catalog.IsToolAllowed(t.Key, granted.Scopes))
+            .Where(t => catalog.IsToolAllowed(t.Key, granted))
             .Select(t => $"- `{t.Key}`")
             .Order(StringComparer.Ordinal);
 
@@ -55,7 +57,7 @@ public sealed class GuideResource(GrantedScopes granted, ScopeCatalog catalog)
             Only `active` accounts can order. `on_hold` and `closed` accounts cannot.
 
             ## Tools available on this server
-            Granted scopes: {string.Join(", ", granted.Scopes.Order(StringComparer.Ordinal))}
+            Granted scopes: {string.Join(", ", granted.Order(StringComparer.Ordinal))}
             {string.Join("\n", tools)}
 
             Every tool call is audited. Argument names must match exactly. Unknown arguments are rejected.

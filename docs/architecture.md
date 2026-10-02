@@ -5,7 +5,7 @@ The server follows a layered ("clean") architecture. Dependencies point inwards 
 
 ```
 ┌──────────────────────────────────────────────────────────────┐
-│ ErpMcp.Server          MCP host: stdio transport, tool       │
+│ ErpMcp.Server          MCP host: stdio + HTTP/OAuth, tool    │
 │                        adapters, filters, operator CLI       │
 ├──────────────────────────────────────────────────────────────┤
 │ ErpMcp.Infrastructure  PostgreSQL (Npgsql + Dapper),         │

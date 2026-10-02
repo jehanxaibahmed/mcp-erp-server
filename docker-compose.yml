@@ -31,5 +31,26 @@ services:
     environment:
       Database__ConnectionString: "Host=postgres;Port=5432;Database=erp;Username=erp;Password=erp_dev_password"
 
+  # Remote MCP over Streamable HTTP with OAuth bearer auth, using a DEVELOPMENT signing key.
+  #   docker compose --profile http up -d erp-mcp-http   →  http://localhost:5100/mcp
+  # For anything beyond local testing, replace Auth__DevSigningKey with Auth__Authority.
+  erp-mcp-http:
+    build: .
+    image: erp-mcp:local
+    profiles: ["http"]
+    command: ["http"]
+    ports:
+      - "5100:5100"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: "Host=postgres;Port=5432;Database=erp;Username=erp;Password=erp_dev_password"
+      Http__Url: "http://0.0.0.0:5100"
+      Http__PublicUrl: "http://localhost:5100"
+      Security__Scopes: "read orders:draft"
+      Auth__Audience: "erp-mcp"
+      Auth__DevSigningKey: "local-dev-signing-key-change-me-0123456789"
+
 volumes:
   erp-pgdata:

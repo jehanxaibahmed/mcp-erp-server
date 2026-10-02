@@ -5,6 +5,7 @@ using ErpMcp.Application.Security;
 using ErpMcp.Domain.Orders;
 using ErpMcp.Server.Auditing;
 using ErpMcp.Server.Security;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
@@ -22,7 +23,7 @@ public sealed class DraftOrderTools(DraftOrderService drafts, ToolCallAnnotation
         Pass an idempotencyKey so retrying after a timeout returns the same draft instead of a duplicate.
         """)]
     public async Task<DraftOrderResponse> CreateDraftOrder(
-        McpServer server,
+        RequestContext<CallToolRequestParams> context,
         [Description("Customer code, e.g. CUST-0001. The account must be active.")] string customerCode,
         [Description("Order lines (1-50). Each SKU may appear once.")] OrderLineInput[] lines,
         [Description("Optional delivery or handling notes for the warehouse, max 500 characters.")] string? notes = null,
@@ -35,7 +36,10 @@ public sealed class DraftOrderTools(DraftOrderService drafts, ToolCallAnnotation
             notes,
             idempotencyKey);
 
-        var result = await drafts.CreateAsync(request, AgentActor.FromClientName(server.ClientInfo?.Name), ct);
+        var requester = new Requester(
+            AgentActor.FromClientName(context.Server.ClientInfo?.Name),
+            CallerIdentity.PersonFrom(context.User));
+        var result = await drafts.CreateAsync(request, requester, ct);
         audit.EntityRef = result.Order.OrderNumber;
 
         var message = result.AlreadyExisted

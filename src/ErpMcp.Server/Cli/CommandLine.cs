@@ -65,6 +65,7 @@ internal sealed record CommandLine(
 
         Usage:
           erp-mcp                                   Run the MCP server over stdio (default)
+          erp-mcp http                              Run over Streamable HTTP with OAuth bearer auth (see docs/http-transport.md)
           erp-mcp migrate [--seed]                  Apply schema migrations (optionally sample data) and exit
 
           erp-mcp orders pending [--limit N]        List orders awaiting approval
