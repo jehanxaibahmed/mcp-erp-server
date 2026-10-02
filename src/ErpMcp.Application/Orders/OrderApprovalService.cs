@@ -44,10 +44,11 @@ public sealed class OrderApprovalService(IOrderRepository orders, IOrderWriter w
         var order = await orders.GetByNumberAsync(number, ct) ?? throw new NotFoundException("Order", number);
         OrderStatusRules.EnsureCanTransition(order.OrderNumber, order.Status, decision);
 
-        if (string.Equals(order.CreatedBy, decidedBy, StringComparison.OrdinalIgnoreCase))
+        if (string.Equals(order.CreatedBy, decidedBy, StringComparison.OrdinalIgnoreCase)
+            || string.Equals(order.OnBehalfOf, decidedBy, StringComparison.OrdinalIgnoreCase))
         {
             throw new DomainRuleViolationException(
-                $"{decidedBy} created order {order.OrderNumber} and cannot also decide on it.");
+                $"{decidedBy} requested order {order.OrderNumber} and cannot also decide on it.");
         }
 
         if (!await record(order, decidedBy, clock.GetUtcNow()))

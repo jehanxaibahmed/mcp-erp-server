@@ -3,6 +3,7 @@ using System.Text.Json.Nodes;
 using ErpMcp.Application.Auditing;
 using ErpMcp.Application.Common;
 using ErpMcp.Domain.Common;
+using ErpMcp.Server.Security;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol.Protocol;
@@ -16,12 +17,16 @@ namespace ErpMcp.Server.Auditing;
 /// <param name="ClientName">MCP client name from <c>initialize</c>.</param>
 /// <param name="ClientVersion">MCP client version from <c>initialize</c>.</param>
 /// <param name="EntityRef">Read after the call, so tools can report what they created.</param>
+/// <param name="SessionId">Transport session id (HTTP); stdio falls back to the per-process id.</param>
+/// <param name="OnBehalfOf">Authenticated person behind the call (HTTP), if any.</param>
 public sealed record ToolCall(
     string ToolName,
     IDictionary<string, JsonElement>? Arguments,
     string? ClientName,
     string? ClientVersion,
-    Func<string?> EntityRef);
+    Func<string?> EntityRef,
+    string? SessionId = null,
+    string? OnBehalfOf = null);
 
 /// <summary>
 /// Records every tool call, including denied, invalid and failed ones, in the audit trail.
@@ -55,7 +60,9 @@ public sealed partial class ToolCallAuditor(
                 context.Params?.Arguments,
                 context.Server.ClientInfo?.Name,
                 context.Server.ClientInfo?.Version,
-                () => context.Services?.GetService<ToolCallAnnotations>()?.EntityRef),
+                () => context.Services?.GetService<ToolCallAnnotations>()?.EntityRef,
+                context.Server.SessionId,
+                CallerIdentity.PersonFrom(context.User)),
             token => next(context, token),
             ct);
 
@@ -99,7 +106,7 @@ public sealed partial class ToolCallAuditor(
         new(
             Channel,
             AgentActor.FromClientName(call.ClientName),
-            session.Id,
+            call.SessionId ?? session.Id,
             call.ClientName,
             call.ClientVersion,
             call.ToolName,
@@ -111,6 +118,7 @@ public sealed partial class ToolCallAuditor(
             occurredAt)
         {
             CallId = callId,
+            OnBehalfOf = call.OnBehalfOf,
         };
 
     private async Task<bool> TryRecordAsync(AuditEntry entry)

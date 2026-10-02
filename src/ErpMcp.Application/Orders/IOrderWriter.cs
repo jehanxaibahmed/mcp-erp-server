@@ -13,7 +13,7 @@ public interface IOrderWriter
     /// used <paramref name="idempotencyKey"/>, nothing is inserted and that order's number is returned.
     /// </summary>
     Task<DraftInsertResult> InsertDraftAsync(
-        DraftOrder draft, string createdBy, string? idempotencyKey, DateTimeOffset createdAt, CancellationToken ct);
+        DraftOrder draft, Requester requester, string? idempotencyKey, DateTimeOffset createdAt, CancellationToken ct);
 
     /// <summary>
     /// Rejects the order only if it is still pending (optimistic concurrency).

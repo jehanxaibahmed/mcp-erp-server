@@ -17,6 +17,9 @@ public sealed record Order(
     IReadOnlyList<string> ReviewFlags,
     IReadOnlyList<OrderLine> Lines)
 {
+    /// <summary>The authenticated person an agent drafted this order for (HTTP transport), if any.</summary>
+    public string? OnBehalfOf { get; init; }
+
     /// <summary>Who fulfilled or cancelled the order, once it has left the active states.</summary>
     public string? ClosedBy { get; init; }
 

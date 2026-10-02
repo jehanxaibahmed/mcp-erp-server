@@ -30,7 +30,10 @@ public sealed class DraftOrderService(
     IOrderWriter writer,
     TimeProvider clock)
 {
-    public async Task<DraftOrderResult> CreateAsync(DraftOrderRequest request, string requestedBy, CancellationToken ct)
+    public Task<DraftOrderResult> CreateAsync(DraftOrderRequest request, string requestedBy, CancellationToken ct) =>
+        CreateAsync(request, new Requester(requestedBy, OnBehalfOf: null), ct);
+
+    public async Task<DraftOrderResult> CreateAsync(DraftOrderRequest request, Requester requester, CancellationToken ct)
     {
         var customerCode = Guard.CustomerCode(request.CustomerCode);
         var key = Guard.IdempotencyKey(request.IdempotencyKey);
@@ -51,7 +54,7 @@ public sealed class DraftOrderService(
 
         var draft = DraftOrder.Create(customer, lines, catalogue, available, stats.OpenOrderValue, request.Notes);
 
-        var inserted = await writer.InsertDraftAsync(draft, requestedBy, key, clock.GetUtcNow(), ct);
+        var inserted = await writer.InsertDraftAsync(draft, requester, key, clock.GetUtcNow(), ct);
         if (!inserted.Inserted)
         {
             // Lost a race with a concurrent request that used the same key.

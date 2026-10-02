@@ -55,7 +55,8 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
                    o.status AS Status, o.source AS Source, o.created_by AS CreatedBy, o.created_at AS CreatedAt,
                    o.decided_by AS DecidedBy, o.decided_at AS DecidedAt, o.rejection_reason AS RejectionReason,
                    o.notes AS Notes, o.total_amount AS TotalAmount, o.review_flags AS ReviewFlags,
-                   o.closed_by AS ClosedBy, o.closed_at AS ClosedAt, o.cancellation_reason AS CancellationReason
+                   o.closed_by AS ClosedBy, o.closed_at AS ClosedAt, o.cancellation_reason AS CancellationReason,
+                   o.on_behalf_of AS OnBehalfOf
             FROM erp.orders o JOIN erp.customers c ON c.id = o.customer_id
             WHERE o.order_number = @orderNumber;
 
@@ -89,6 +90,7 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
             ClosedBy = header.ClosedBy,
             ClosedAt = SqlText.AsUtc(header.ClosedAt),
             CancellationReason = header.CancellationReason,
+            OnBehalfOf = header.OnBehalfOf,
             Allocations = allocations,
         };
     }
@@ -127,6 +129,7 @@ internal sealed class OrderRepository(NpgsqlDataSource db) : IOrderRepository
         public string? ClosedBy { get; init; }
         public DateTime? ClosedAt { get; init; }
         public string? CancellationReason { get; init; }
+        public string? OnBehalfOf { get; init; }
 
         public Order ToDomain(IReadOnlyList<OrderLine> lines) => new(
             Id, OrderNumber, CustomerCode, CustomerName,

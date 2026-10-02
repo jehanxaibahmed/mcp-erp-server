@@ -7,18 +7,18 @@ using ModelContextProtocol.Server;
 namespace ErpMcp.Server.Filters;
 
 /// <summary>
-/// Enforces permission scopes twice: tools the server isn't granted are hidden from
+/// Enforces permission scopes (resolved per request, see <see cref="ScopeResolver"/>) twice: tools the caller isn't granted are hidden from
 /// <c>tools/list</c> so the model never considers them, and calls to them are refused anyway in
 /// case a client calls a tool by name without listing first.
 /// </summary>
-internal sealed class ScopeFilters(ScopeCatalog catalog, GrantedScopes granted)
+internal sealed class ScopeFilters(ScopeCatalog catalog, ScopeResolver scopes)
 {
     public McpRequestHandler<ListToolsRequestParams, ListToolsResult> HideUngrantedTools(
         McpRequestHandler<ListToolsRequestParams, ListToolsResult> next) =>
         async (context, ct) =>
         {
             var result = await next(context, ct);
-            result.Tools = result.Tools.Where(t => catalog.IsToolAllowed(t.Name, granted.Scopes)).ToList();
+            result.Tools = result.Tools.Where(t => catalog.IsToolAllowed(t.Name, scopes.Resolve(context.User))).ToList();
             return result;
         };
 
@@ -27,7 +27,7 @@ internal sealed class ScopeFilters(ScopeCatalog catalog, GrantedScopes granted)
         (context, ct) =>
         {
             var name = context.Params?.Name ?? "";
-            if (!catalog.IsToolAllowed(name, granted.Scopes))
+            if (!catalog.IsToolAllowed(name, scopes.Resolve(context.User)))
             {
                 throw new PermissionDeniedException(name, catalog.RequiredScopeForTool(name)!);
             }
@@ -40,7 +40,7 @@ internal sealed class ScopeFilters(ScopeCatalog catalog, GrantedScopes granted)
         async (context, ct) =>
         {
             var result = await next(context, ct);
-            result.Prompts = result.Prompts.Where(p => catalog.IsPromptAllowed(p.Name, granted.Scopes)).ToList();
+            result.Prompts = result.Prompts.Where(p => catalog.IsPromptAllowed(p.Name, scopes.Resolve(context.User))).ToList();
             return result;
         };
 
@@ -55,7 +55,7 @@ internal sealed class ScopeFilters(ScopeCatalog catalog, GrantedScopes granted)
             var name = context.Params?.Name ?? "";
             try
             {
-                if (!catalog.IsPromptAllowed(name, granted.Scopes))
+                if (!catalog.IsPromptAllowed(name, scopes.Resolve(context.User)))
                 {
                     throw new PermissionDeniedException(name, catalog.RequiredScopeForPrompt(name)!);
                 }

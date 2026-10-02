@@ -15,6 +15,8 @@ guardrails are enforced in code rather than left to the model:
 - 🧑‍⚖️ **Humans approve.** Agents can only *draft* orders. Approval is a separate operator CLI, deliberately not a tool.
 - ✅ **Strict input validation.** Code formats, enums, paging, and even misspelled argument names are rejected with actionable errors.
 - 📜 **Append-only audit trail** of every tool call, including refused ones.
+- 🌐 **Local or remote.** stdio for desktop clients; Streamable HTTP with OAuth 2.1 bearer tokens,
+  where each user's token narrows the scopes and their identity is recorded on drafts and audit events.
 
 ## ✨ What an agent can do
 
@@ -42,7 +44,8 @@ python3 scripts/mcp_smoke.py get_stock_level '{"sku":"BEV-0001"}'
 ```
 
 Then connect a real client (Claude Desktop, Claude Code, VS Code, MCP Inspector):
-**[docs/connecting-clients.md](docs/connecting-clients.md)**. This repo includes a project
+**[docs/connecting-clients.md](docs/connecting-clients.md)**. For remote use over HTTP with
+OAuth, see **[docs/http-transport.md](docs/http-transport.md)**. This repo includes a project
 `.mcp.json`, so Claude Code picks the server up automatically.
 
 ### The approval loop
@@ -63,7 +66,7 @@ src/
 ├── ErpMcp.Domain           Entities and business rules (draft validation, order lifecycle). No dependencies.
 ├── ErpMcp.Application      Use cases, input guards, scopes, ports (repository/audit interfaces)
 ├── ErpMcp.Infrastructure   PostgreSQL via Npgsql + Dapper, DbUp migrations, audit writer
-└── ErpMcp.Server           MCP host (stdio), thin tool adapters, filters, operator CLI
+└── ErpMcp.Server           MCP host (stdio + HTTP/OAuth), thin tool adapters, filters, operator CLI
 tests/
 ├── ErpMcp.UnitTests          Domain rules, guards, scopes, CLI parsing, layering rules
 └── ErpMcp.IntegrationTests   Real Postgres (Testcontainers) + end-to-end over stdio with the MCP client
@@ -103,7 +106,7 @@ covered too, including idempotent draft retries racing and two approvers decidin
 - [x] Input validation and permission scopes
 - [x] Audit log of every tool call
 - [x] Guide for connecting to MCP clients
-- [ ] Streamable HTTP transport with OAuth-backed per-user scopes
+- [x] Streamable HTTP transport with OAuth-backed per-user scopes
 - [x] Stock reservation on approval, fulfilment and cancellation
 
 ## 📌 Notes

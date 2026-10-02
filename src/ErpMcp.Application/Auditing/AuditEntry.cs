@@ -29,6 +29,9 @@ public sealed record AuditEntry(
 {
     /// <summary>Links a <see cref="AuditOutcome.Started"/> event to the outcome event of the same call.</summary>
     public Guid CallId { get; init; } = Guid.NewGuid();
+
+    /// <summary>The authenticated person an agent acted for (HTTP transport), if any.</summary>
+    public string? OnBehalfOf { get; init; }
 }
 
 public enum AuditOutcome

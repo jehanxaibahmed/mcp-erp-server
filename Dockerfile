@@ -14,12 +14,15 @@ RUN dotnet restore src/ErpMcp.Server/ErpMcp.Server.csproj
 COPY src/ src/
 RUN dotnet publish src/ErpMcp.Server/ErpMcp.Server.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/runtime:10.0 AS runtime
+# The ASP.NET runtime covers both transports (stdio and `erp-mcp http`).
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app .
 
 # Run as the image's built-in unprivileged user.
 USER $APP_UID
 
-# MCP over stdio: start with `docker run -i`. Extra args select CLI commands (migrate, orders, audit).
+# MCP over stdio: start with `docker run -i`. Extra args select CLI commands (migrate, orders, audit),
+# or `http` for the Streamable HTTP transport on port 5100.
+EXPOSE 5100
 ENTRYPOINT ["dotnet", "erp-mcp.dll"]
