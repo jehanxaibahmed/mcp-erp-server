@@ -12,7 +12,7 @@ namespace ErpMcp.Server.Tools;
 public sealed class OrderTools(OrderQueries orders)
 {
     [RequiresScope(Scopes.OrdersRead)]
-    [McpServerTool(Name = "list_orders", Title = "List orders", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "list_orders", Title = "List orders", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("List sales orders, newest first, filtered by customer, status and creation date.")]
     public Task<PagedResult<OrderSummary>> ListOrders(
         [Description("Only orders for this customer code, e.g. CUST-0001.")] string? customerCode = null,
@@ -25,7 +25,7 @@ public sealed class OrderTools(OrderQueries orders)
         orders.ListAsync(customerCode, status, createdFrom, createdTo, limit, offset, ct);
 
     [RequiresScope(Scopes.OrdersRead)]
-    [McpServerTool(Name = "get_order", Title = "Get order", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_order", Title = "Get order", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Get one order with its lines, totals and approval decision.")]
     public Task<Order> GetOrder(
         [Description("Order number, e.g. SO-100001.")] string orderNumber,

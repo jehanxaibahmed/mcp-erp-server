@@ -19,7 +19,7 @@ internal static class McpServerSetup
     {
         var security = configuration.GetSection(SecurityOptions.SectionName).Get<SecurityOptions>() ?? new SecurityOptions();
         var granted = new GrantedScopes(security.GrantedScopes());
-        var catalog = ToolCatalog.FromAssembly(typeof(McpServerSetup).Assembly);
+        var catalog = ScopeCatalog.FromAssembly(typeof(McpServerSetup).Assembly);
 
         services.AddSingleton(security);
         services.AddSingleton(granted);
@@ -37,9 +37,13 @@ internal static class McpServerSetup
             .AddMcpServer()
             .WithStdioServerTransport()
             .WithToolsFromAssembly(serializerOptions: ToolJson.Options)
+            .WithPromptsFromAssembly()
+            .WithResourcesFromAssembly()
             .WithRequestFilters(filters =>
             {
                 filters.AddListToolsFilter(scopeFilters.HideUngrantedTools);
+                filters.AddListPromptsFilter(scopeFilters.HideUngrantedPrompts);
+                filters.AddGetPromptFilter(scopeFilters.GuardPrompts);
                 filters.AddCallToolFilter(ToolErrorFilter.Apply);
                 filters.AddCallToolFilter(ToolCallAuditor.Filter);
                 filters.AddCallToolFilter(scopeFilters.RefuseUngrantedCalls);

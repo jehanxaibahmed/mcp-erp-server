@@ -4,9 +4,9 @@ using ErpMcp.Server.Tools;
 
 namespace ErpMcp.UnitTests.Security;
 
-public class ToolCatalogTests
+public class ScopeCatalogTests
 {
-    private static readonly ToolCatalog Catalog = ToolCatalog.FromAssembly(typeof(ServerInfoTools).Assembly);
+    private static readonly ScopeCatalog Catalog = ScopeCatalog.FromAssembly(typeof(ServerInfoTools).Assembly);
 
     [Fact]
     public void Every_tool_declares_a_known_scope() =>
@@ -21,7 +21,7 @@ public class ToolCatalogTests
     [InlineData("create_draft_order", Scopes.OrdersDraft)]
     [InlineData("get_server_info", RequiresScopeAttribute.None)]
     public void Maps_tools_to_scopes(string tool, string scope) =>
-        Catalog.RequiredScope(tool).ShouldBe(scope);
+        Catalog.RequiredScopeForTool(tool).ShouldBe(scope);
 
     [Fact]
     public void Only_the_draft_tool_needs_a_write_scope() =>
@@ -30,11 +30,22 @@ public class ToolCatalogTests
     [Fact]
     public void Read_only_grant_allows_reads_but_not_drafting()
     {
-        Catalog.IsAllowed("get_stock_level", Scopes.ReadOnly).ShouldBeTrue();
-        Catalog.IsAllowed("create_draft_order", Scopes.ReadOnly).ShouldBeFalse();
+        Catalog.IsToolAllowed("get_stock_level", Scopes.ReadOnly).ShouldBeTrue();
+        Catalog.IsToolAllowed("create_draft_order", Scopes.ReadOnly).ShouldBeFalse();
     }
 
     [Fact]
     public void Scope_free_tools_are_always_allowed() =>
-        Catalog.IsAllowed("get_server_info", new HashSet<string>()).ShouldBeTrue();
+        Catalog.IsToolAllowed("get_server_info", new HashSet<string>()).ShouldBeTrue();
+
+    [Theory]
+    [InlineData("review_low_stock", Scopes.InventoryRead)]
+    [InlineData("customer_account_review", Scopes.CustomersRead)]
+    [InlineData("draft_order_from_request", Scopes.OrdersDraft)]
+    public void Maps_prompts_to_scopes(string prompt, string scope) =>
+        Catalog.RequiredScopeForPrompt(prompt).ShouldBe(scope);
+
+    [Fact]
+    public void Draft_prompt_is_hidden_under_read_only_grant() =>
+        Catalog.IsPromptAllowed("draft_order_from_request", Scopes.ReadOnly).ShouldBeFalse();
 }

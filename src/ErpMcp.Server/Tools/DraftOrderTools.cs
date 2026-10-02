@@ -14,7 +14,7 @@ public sealed class DraftOrderTools(DraftOrderService drafts, ToolCallAnnotation
 {
     [RequiresScope(Scopes.OrdersDraft)]
     [McpServerTool(Name = "create_draft_order", Title = "Create draft order",
-        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
+        ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false, UseStructuredContent = true)]
     [Description("""
         Draft a sales order for a customer. The order is NOT placed: it goes into a queue for a person
         to approve or reject, and nothing ships until they do. Prices always come from the catalogue.

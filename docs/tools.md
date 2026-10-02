@@ -1,6 +1,7 @@
 # Tool reference
 
-Every tool returns JSON as text content. Enum values use snake_case (`pending_approval`) in both
+Every tool publishes an `outputSchema` and returns its result twice: as `structuredContent`
+(typed, matching the schema) and as JSON text, for clients that don't read structured output yet. Enum values use snake_case (`pending_approval`) in both
 arguments and results. Codes are case-insensitive on input and normalised to upper case.
 
 When a call fails for a reason the agent can fix, such as a malformed code, an unknown record or
@@ -18,7 +19,7 @@ All read tools are annotated `readOnlyHint: true`, `idempotentHint: true`, `open
 | `get_customer` | `customerCode` | Customer + order stats (total, open count/value, last order) |
 | `search_products` | `query?`, `category?`, `includeInactive?`, `limit?`, `offset?` | Page of products |
 | `get_product` | `sku` | Product |
-| `list_product_categories` | — | Categories with active product counts |
+| `list_product_categories` | — | `{ categories: [{ name, activeProductCount }] }` |
 | `get_stock_level` | `sku` | Per-warehouse on-hand, reserved, available and reorder level |
 | `list_low_stock` | `warehouseCode?`, `limit?`, `offset?` | Page of stock rows below reorder level, most urgent first |
 | `list_orders` | `customerCode?`, `status?`, `createdFrom?`, `createdTo?` (YYYY-MM-DD, inclusive), `limit?`, `offset?` | Page of order summaries, newest first |
@@ -69,3 +70,27 @@ Agents cannot approve, reject, fulfil or cancel orders, and cannot set prices. S
 - **Retries**: pass an `idempotencyKey` (8–100 chars). Repeating the call with the same key and
   the same lines returns the original draft with `alreadyExisted: true`. Reusing a key for
   different lines is an error.
+
+## Prompts
+
+Prompts are reusable task templates that users pick in their client (for example via `/` in
+Claude). They're scope-filtered like tools, and their arguments are validated before being
+embedded in the prompt text.
+
+| Prompt | Arguments | Scope | What it does |
+| --- | --- | --- | --- |
+| `review_low_stock` | `warehouseCode?` | `inventory:read` | Low-stock table with "transfer or reorder" suggestions. Never creates orders |
+| `customer_account_review` | `customerCode` | `customers:read` | Credit headroom, open orders, recent activity, items to act on |
+| `draft_order_from_request` | `customerCode`, `request` | `orders:draft` | Resolves free text to SKUs, confirms with the user, then drafts with an idempotency key |
+
+`draft_order_from_request` puts the customer's words between `<<<REQUEST … REQUEST>>>` markers
+and tells the model to treat them as data. An invalid argument returns a JSON-RPC `InvalidParams` error.
+
+## Resources
+
+| URI | Contents |
+| --- | --- |
+| `erp://guide` | Markdown orientation: code formats, stock terms, order lifecycle, and the tools this server instance allows |
+
+ERP **data** is deliberately not exposed as resources. Resource reads bypass the per-tool scope
+checks and the audit trail, so data stays behind tools.
