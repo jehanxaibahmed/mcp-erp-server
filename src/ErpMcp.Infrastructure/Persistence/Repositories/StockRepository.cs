@@ -29,6 +29,20 @@ internal sealed class StockRepository(NpgsqlDataSource db) : IStockRepository
         return levels.ToList();
     }
 
+    public async Task<IReadOnlyDictionary<string, int>> GetAvailableBySkusAsync(
+        IReadOnlyCollection<string> skus, CancellationToken ct)
+    {
+        await using var connection = await db.OpenConnectionAsync(ct);
+        var rows = await connection.QueryAsync<(string Sku, int Available)>(new CommandDefinition("""
+            SELECT p.sku, coalesce(sum(s.quantity_on_hand - s.quantity_reserved), 0)::int
+            FROM erp.products p
+            LEFT JOIN erp.stock_levels s ON s.product_id = p.id
+            WHERE p.sku = ANY(@skus)
+            GROUP BY p.sku
+            """, new { skus = skus.ToArray() }, cancellationToken: ct));
+        return rows.ToDictionary(r => r.Sku, r => r.Available);
+    }
+
     public async Task<PagedResult<StockLevel>> ListBelowReorderLevelAsync(
         string? warehouseCode, PageRequest page, CancellationToken ct)
     {

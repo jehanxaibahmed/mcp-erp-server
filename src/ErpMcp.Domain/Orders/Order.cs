@@ -14,6 +14,7 @@ public sealed record Order(
     string? RejectionReason,
     string? Notes,
     decimal TotalAmount,
+    IReadOnlyList<string> ReviewFlags,
     IReadOnlyList<OrderLine> Lines);
 
 public sealed record OrderLine(

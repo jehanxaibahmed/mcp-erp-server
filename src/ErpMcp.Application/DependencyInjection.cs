@@ -3,6 +3,7 @@ using ErpMcp.Application.Customers;
 using ErpMcp.Application.Inventory;
 using ErpMcp.Application.Orders;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace ErpMcp.Application;
 
@@ -14,6 +15,9 @@ public static class DependencyInjection
         services.AddScoped<ProductQueries>();
         services.AddScoped<StockQueries>();
         services.AddScoped<OrderQueries>();
+        services.AddScoped<DraftOrderService>();
+        services.AddScoped<OrderApprovalService>();
+        services.TryAddSingleton(TimeProvider.System);
         return services;
     }
 }

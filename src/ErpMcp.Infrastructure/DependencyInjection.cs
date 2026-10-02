@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddSingleton<IProductRepository, ProductRepository>();
         services.AddSingleton<IStockRepository, StockRepository>();
         services.AddSingleton<IOrderRepository, OrderRepository>();
+        services.AddSingleton<IOrderWriter, OrderWriter>();
         services.AddHostedService<MigrationHostedService>();
 
         return services;
