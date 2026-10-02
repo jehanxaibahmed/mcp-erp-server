@@ -20,6 +20,7 @@ internal static class OrderCommands
         await using var scope = services.CreateAsyncScope();
         var approvals = scope.ServiceProvider.GetRequiredService<OrderApprovalService>();
         var queries = scope.ServiceProvider.GetRequiredService<OrderQueries>();
+        var audit = ActivatorUtilities.CreateInstance<CliAudit>(scope.ServiceProvider);
 
         try
         {
@@ -35,12 +36,22 @@ internal static class OrderCommands
                     return 0;
 
                 case "approve":
-                    var approved = await approvals.ApproveAsync(cli.Positional(2), cli.Option("--by"), ct);
+                    var approved = await audit.RunAsync(
+                        "orders.approve",
+                        cli.Option("--by"),
+                        new { orderNumber = cli.Positional(2) },
+                        () => approvals.ApproveAsync(cli.Positional(2), cli.Option("--by"), ct),
+                        o => o.OrderNumber);
                     output.WriteLine($"Approved {approved.OrderNumber} ({Money(approved.TotalAmount)}) for {approved.CustomerName}.");
                     return 0;
 
                 case "reject":
-                    var rejected = await approvals.RejectAsync(cli.Positional(2), cli.Option("--by"), cli.Option("--reason"), ct);
+                    var rejected = await audit.RunAsync(
+                        "orders.reject",
+                        cli.Option("--by"),
+                        new { orderNumber = cli.Positional(2), reason = cli.Option("--reason") },
+                        () => approvals.RejectAsync(cli.Positional(2), cli.Option("--by"), cli.Option("--reason"), ct),
+                        o => o.OrderNumber);
                     output.WriteLine($"Rejected {rejected.OrderNumber}: {rejected.RejectionReason}");
                     return 0;
 

@@ -1,3 +1,4 @@
+using ErpMcp.Application.Auditing;
 using ErpMcp.Application.Catalog;
 using ErpMcp.Application.Customers;
 using ErpMcp.Application.Inventory;
@@ -32,6 +33,7 @@ public static class DependencyInjection
         services.AddSingleton<IStockRepository, StockRepository>();
         services.AddSingleton<IOrderRepository, OrderRepository>();
         services.AddSingleton<IOrderWriter, OrderWriter>();
+        services.AddSingleton<IAuditLog, AuditLog>();
         services.AddHostedService<MigrationHostedService>();
 
         return services;

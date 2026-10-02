@@ -1,3 +1,4 @@
+using ErpMcp.Server.Auditing;
 using ErpMcp.Server.Filters;
 using ErpMcp.Server.Security;
 using Microsoft.Extensions.Configuration;
@@ -10,7 +11,9 @@ internal static class McpServerSetup
     /// <summary>
     /// Registers the MCP server: stdio transport, tools, and the filter pipeline.
     /// Call-tool filters run outermost first:
-    /// errors → scopes → argument validation → tool.
+    /// errors → audit → scopes → argument validation → tool.
+    /// Audit sits inside the error filter so it sees the original exception (denied, invalid…)
+    /// and outside the checks so refused calls are recorded too.
     /// </summary>
     public static IServiceCollection AddErpMcpServer(this IServiceCollection services, IConfiguration configuration)
     {
@@ -21,6 +24,11 @@ internal static class McpServerSetup
         services.AddSingleton(security);
         services.AddSingleton(granted);
         services.AddSingleton(catalog);
+
+        services.AddSingleton(configuration.GetSection(AuditOptions.SectionName).Get<AuditOptions>() ?? new AuditOptions());
+        services.AddSingleton(AuditSession.New());
+        services.AddSingleton<ToolCallAuditor>();
+        services.AddScoped<ToolCallAnnotations>();
 
         var scopeFilters = new ScopeFilters(catalog, granted);
         var argumentFilter = new ArgumentValidationFilter(security);
@@ -33,6 +41,7 @@ internal static class McpServerSetup
             {
                 filters.AddListToolsFilter(scopeFilters.HideUngrantedTools);
                 filters.AddCallToolFilter(ToolErrorFilter.Apply);
+                filters.AddCallToolFilter(ToolCallAuditor.Filter);
                 filters.AddCallToolFilter(scopeFilters.RefuseUngrantedCalls);
                 filters.AddCallToolFilter(argumentFilter.Apply);
             });

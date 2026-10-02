@@ -10,7 +10,7 @@ internal sealed record CommandLine(
     string[] ConfigurationArgs)
 {
     private static readonly HashSet<string> Flags = ["--seed", "--help"];
-    private static readonly HashSet<string> ValueOptions = ["--by", "--reason", "--limit"];
+    private static readonly HashSet<string> ValueOptions = ["--by", "--reason", "--limit", "--action", "--outcome", "--actor"];
 
     public bool Is(params string[] words) =>
         Command.Count >= words.Length && words.Select((w, i) => Command[i] == w).All(match => match);
@@ -71,6 +71,9 @@ internal sealed record CommandLine(
           erp-mcp orders show <order-number>        Show an order with its lines and review flags
           erp-mcp orders approve <order-number> --by <you@example.com>
           erp-mcp orders reject  <order-number> --by <you@example.com> --reason "<why>"
+
+          erp-mcp audit [--limit N] [--action <tool>] [--outcome <outcome>] [--actor <id>]
+                                                    Show recent audit events, newest first
 
         Configuration can be overridden with --Section:Key=value, e.g.
           --Database:ConnectionString="Host=...;Database=erp;Username=...;Password=..."

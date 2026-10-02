@@ -64,9 +64,13 @@ Expected failures (validation, not found, rule violations, permission denied) re
 `isError: true` with an actionable one-line message. Anything unexpected returns the SDK's
 generic error, and details go only to the server's stderr log.
 
+## 5. Everything is audited
+
+Every call, including refused ones, is written to an append-only table. See [audit.md](audit.md).
+
 ## Filter pipeline
 
 ```
-tools/call ─▶ ToolErrorFilter ─▶ scope check ─▶ argument validation ─▶ tool ─▶ application ─▶ SQL
-               (maps errors)      (403-style)     (names, size)
+tools/call ─▶ ToolErrorFilter ─▶ ToolCallAuditor ─▶ scope check ─▶ argument validation ─▶ tool ─▶ application ─▶ SQL
+               (maps errors)      (records outcome)   (403-style)     (names, size)
 ```
