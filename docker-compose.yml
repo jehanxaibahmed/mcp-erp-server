@@ -16,5 +16,20 @@ services:
       timeout: 3s
       retries: 10
 
+  # The MCP server itself. It speaks stdio, so it isn't a long-running service: use it for
+  # one-off commands, e.g.
+  #   docker compose run --rm erp-mcp migrate --seed
+  #   docker compose run --rm erp-mcp orders pending
+  erp-mcp:
+    build: .
+    image: erp-mcp:local
+    profiles: ["tools"]
+    stdin_open: true
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      Database__ConnectionString: "Host=postgres;Port=5432;Database=erp;Username=erp;Password=erp_dev_password"
+
 volumes:
   erp-pgdata:

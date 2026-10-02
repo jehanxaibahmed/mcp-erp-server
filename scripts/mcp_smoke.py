@@ -4,12 +4,17 @@
 Usage:
     python3 scripts/mcp_smoke.py                      # initialize + list tools
     python3 scripts/mcp_smoke.py get_server_info '{}'  # also call one tool
+
+Set MCP_SERVER_CMD to test a different launch command, e.g. the Docker image:
+    MCP_SERVER_CMD="docker compose --profile tools run --rm -T erp-mcp" python3 scripts/mcp_smoke.py
 """
 import json
+import os
+import shlex
 import subprocess
 import sys
 
-CMD = ["dotnet", "run", "--no-build", "--project", "src/ErpMcp.Server", "--"]
+CMD = shlex.split(os.environ.get("MCP_SERVER_CMD", "dotnet run --no-build --project src/ErpMcp.Server --"))
 
 
 def main() -> int:
