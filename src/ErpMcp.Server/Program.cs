@@ -1,4 +1,5 @@
 using ErpMcp.Application;
+using ErpMcp.Application.Common;
 using ErpMcp.Infrastructure;
 using ErpMcp.Infrastructure.Persistence;
 using ErpMcp.Server;
@@ -58,11 +59,16 @@ if (cli.Command.Count > 0)
     return 2;
 }
 
-builder.Services
-    .AddMcpServer()
-    .WithStdioServerTransport()
-    .WithToolsFromAssembly(serializerOptions: ToolJson.Options)
-    .WithRequestFilters(filters => filters.AddCallToolFilter(ToolErrorFilter.Apply));
+try
+{
+    builder.Services.AddErpMcpServer(builder.Configuration);
+}
+catch (ErpException ex)
+{
+    // Misconfiguration (e.g. an unknown scope) must stop start-up loudly, not degrade silently.
+    await Console.Error.WriteLineAsync($"error: {ex.Message}");
+    return 1;
+}
 
 await builder.Build().RunAsync();
 return 0;

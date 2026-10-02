@@ -1,18 +1,21 @@
 using System.ComponentModel;
 using System.Reflection;
+using ErpMcp.Server.Security;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
 
 [McpServerToolType]
-public static class ServerInfoTools
+public sealed class ServerInfoTools(GrantedScopes granted)
 {
+    [RequiresScope(RequiresScopeAttribute.None)]
     [McpServerTool(Name = "get_server_info", Title = "Server info", ReadOnly = true, Idempotent = true, OpenWorld = false)]
-    [Description("Returns the ERP MCP server name and version. Useful as a connectivity check.")]
-    public static ServerInfo GetServerInfo() => new(
+    [Description("Returns the server version and the permission scopes it has been granted. Useful as a connectivity check.")]
+    public ServerInfo GetServerInfo() => new(
         Name: "erp-mcp",
         Version: typeof(ServerInfoTools).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown");
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "unknown",
+        GrantedScopes: granted.Scopes.Order().ToList());
 
-    public sealed record ServerInfo(string Name, string Version);
+    public sealed record ServerInfo(string Name, string Version, IReadOnlyList<string> GrantedScopes);
 }

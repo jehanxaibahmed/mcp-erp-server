@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using ErpMcp.Application.Common;
 using ErpMcp.Application.Orders;
+using ErpMcp.Application.Security;
 using ErpMcp.Domain.Orders;
+using ErpMcp.Server.Security;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
@@ -9,6 +11,7 @@ namespace ErpMcp.Server.Tools;
 [McpServerToolType]
 public sealed class DraftOrderTools(DraftOrderService drafts)
 {
+    [RequiresScope(Scopes.OrdersDraft)]
     [McpServerTool(Name = "create_draft_order", Title = "Create draft order",
         ReadOnly = false, Destructive = false, Idempotent = false, OpenWorld = false)]
     [Description("""

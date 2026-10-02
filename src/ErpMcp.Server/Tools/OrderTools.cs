@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using ErpMcp.Application.Common;
 using ErpMcp.Application.Orders;
+using ErpMcp.Application.Security;
 using ErpMcp.Domain.Orders;
+using ErpMcp.Server.Security;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
@@ -9,6 +11,7 @@ namespace ErpMcp.Server.Tools;
 [McpServerToolType]
 public sealed class OrderTools(OrderQueries orders)
 {
+    [RequiresScope(Scopes.OrdersRead)]
     [McpServerTool(Name = "list_orders", Title = "List orders", ReadOnly = true, Idempotent = true, OpenWorld = false)]
     [Description("List sales orders, newest first, filtered by customer, status and creation date.")]
     public Task<PagedResult<OrderSummary>> ListOrders(
@@ -21,6 +24,7 @@ public sealed class OrderTools(OrderQueries orders)
         CancellationToken ct = default) =>
         orders.ListAsync(customerCode, status, createdFrom, createdTo, limit, offset, ct);
 
+    [RequiresScope(Scopes.OrdersRead)]
     [McpServerTool(Name = "get_order", Title = "Get order", ReadOnly = true, Idempotent = true, OpenWorld = false)]
     [Description("Get one order with its lines, totals and approval decision.")]
     public Task<Order> GetOrder(
