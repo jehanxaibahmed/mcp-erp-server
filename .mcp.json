@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "erp": {
+      "command": "dotnet",
+      "args": ["run", "--project", "src/ErpMcp.Server"],
+      "env": {
+        "Security__Scopes": "read"
+      }
+    }
+  }
+}

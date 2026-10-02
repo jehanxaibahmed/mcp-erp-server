@@ -23,3 +23,14 @@ jobs:
 
       - name: Test
         run: dotnet test --solution ErpMcp.slnx --no-build --configuration Release
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t erp-mcp:ci .
+
+      - name: Image starts and prints usage
+        run: docker run --rm erp-mcp:ci --help

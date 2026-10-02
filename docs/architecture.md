@@ -6,7 +6,7 @@ The server follows a layered ("clean") architecture. Dependencies point inwards 
 ```
 ┌──────────────────────────────────────────────────────────────┐
 │ ErpMcp.Server          MCP host: stdio transport, tool       │
-│                        adapters, request filters, DI wiring  │
+│                        adapters, filters, operator CLI       │
 ├──────────────────────────────────────────────────────────────┤
 │ ErpMcp.Infrastructure  PostgreSQL (Npgsql + Dapper),         │
 │                        migrations, audit log writer          │
@@ -49,8 +49,10 @@ The server follows a layered ("clean") architecture. Dependencies point inwards 
 │   ├── ErpMcp.UnitTests/          fast, no I/O
 │   └── ErpMcp.IntegrationTests/   real PostgreSQL via Testcontainers (needs Docker)
 ├── scripts/            helper scripts (MCP smoke client)
-├── docs/               architecture and usage guides (see database.md)
-├── docker-compose.yml  local PostgreSQL
+├── docs/               architecture, security, audit, database, tools, client guides
+├── docker-compose.yml  local PostgreSQL (+ the server under the "tools" profile)
+├── Dockerfile          multi-stage, runs as non-root
+├── .mcp.json           project-scoped server for Claude Code
 ├── Directory.Build.props     shared compiler settings (warnings as errors)
 └── Directory.Packages.props  central NuGet versions
 ```
