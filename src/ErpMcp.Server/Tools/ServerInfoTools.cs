@@ -9,7 +9,7 @@ namespace ErpMcp.Server.Tools;
 public sealed class ServerInfoTools(GrantedScopes granted)
 {
     [RequiresScope(RequiresScopeAttribute.None)]
-    [McpServerTool(Name = "get_server_info", Title = "Server info", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_server_info", Title = "Server info", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Returns the server version and the permission scopes it has been granted. Useful as a connectivity check.")]
     public ServerInfo GetServerInfo() => new(
         Name: "erp-mcp",

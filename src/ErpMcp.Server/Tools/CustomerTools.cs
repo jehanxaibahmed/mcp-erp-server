@@ -12,7 +12,7 @@ namespace ErpMcp.Server.Tools;
 public sealed class CustomerTools(CustomerQueries customers)
 {
     [RequiresScope(Scopes.CustomersRead)]
-    [McpServerTool(Name = "search_customers", Title = "Search customers", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "search_customers", Title = "Search customers", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Find customer accounts by name, customer code or city. Returns a page of matches ordered by name.")]
     public Task<PagedResult<Customer>> SearchCustomers(
         [Description("Text to match against name, code or city (case-insensitive). Omit to list all.")] string? query = null,
@@ -23,7 +23,7 @@ public sealed class CustomerTools(CustomerQueries customers)
         customers.SearchAsync(query, status, limit, offset, ct);
 
     [RequiresScope(Scopes.CustomersRead)]
-    [McpServerTool(Name = "get_customer", Title = "Get customer", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_customer", Title = "Get customer", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Get one customer account with credit limit, status and a summary of their order history.")]
     public Task<CustomerDetails> GetCustomer(
         [Description("Customer code, e.g. CUST-0001.")] string customerCode,

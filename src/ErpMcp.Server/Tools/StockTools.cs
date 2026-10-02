@@ -12,7 +12,7 @@ namespace ErpMcp.Server.Tools;
 public sealed class StockTools(StockQueries stock)
 {
     [RequiresScope(Scopes.InventoryRead)]
-    [McpServerTool(Name = "get_stock_level", Title = "Get stock level", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "get_stock_level", Title = "Get stock level", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("Get current stock for a product in every warehouse. 'Available' is on-hand minus stock already reserved for orders.")]
     public Task<ProductStock> GetStockLevel(
         [Description("Product SKU, e.g. BEV-0001.")] string sku,
@@ -20,7 +20,7 @@ public sealed class StockTools(StockQueries stock)
         stock.GetForProductAsync(sku, ct);
 
     [RequiresScope(Scopes.InventoryRead)]
-    [McpServerTool(Name = "list_low_stock", Title = "List low stock", ReadOnly = true, Idempotent = true, OpenWorld = false)]
+    [McpServerTool(Name = "list_low_stock", Title = "List low stock", ReadOnly = true, Idempotent = true, OpenWorld = false, UseStructuredContent = true)]
     [Description("List active products whose available stock is below the reorder level, most urgent first.")]
     public Task<PagedResult<StockLevel>> ListLowStock(
         [Description("Limit to one warehouse: WH-MAN, WH-BHM or WH-LDS. Omit for all.")] string? warehouseCode = null,

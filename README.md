@@ -27,7 +27,9 @@ guardrails are enforced in code rather than left to the model:
 | `create_draft_order` *(pending human approval)* | `orders:draft` |
 | `get_server_info` | — |
 
-Full reference: [docs/tools.md](docs/tools.md)
+Every tool has a typed `outputSchema`. There are also three **prompts** (`review_low_stock`,
+`customer_account_review`, `draft_order_from_request`) and an `erp://guide` **resource** that
+orients the model. Full reference: [docs/tools.md](docs/tools.md)
 
 ## 🚀 Quick start
 
