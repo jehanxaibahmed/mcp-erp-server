@@ -25,10 +25,17 @@ public sealed record AuditEntry(
     string? ErrorMessage,
     int DurationMs,
     string? EntityRef,
-    DateTimeOffset OccurredAt);
+    DateTimeOffset OccurredAt)
+{
+    /// <summary>Links a <see cref="AuditOutcome.Started"/> event to the outcome event of the same call.</summary>
+    public Guid CallId { get; init; } = Guid.NewGuid();
+}
 
 public enum AuditOutcome
 {
+    /// <summary>Recorded before execution in fail-closed mode; the outcome follows with the same call id.</summary>
+    Started,
+
     /// <summary>Completed normally.</summary>
     Success,
 

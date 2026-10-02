@@ -15,23 +15,35 @@ public sealed partial class PostgresFixture
     /// another host would launch it, granted <paramref name="scopes"/>. One server process per
     /// distinct scope set, shared across tests to avoid paying start-up each time.
     /// </summary>
-    public Task<McpClient> GetMcpClientAsync(string scopes = AllScopes) =>
-        _clients.GetOrAdd(scopes, s => new Lazy<Task<McpClient>>(() => StartClientAsync(s))).Value;
+    public Task<McpClient> GetMcpClientAsync(string scopes = AllScopes, IReadOnlyDictionary<string, string?>? environment = null)
+    {
+        var key = scopes + "|" + string.Join(";", (environment ?? new Dictionary<string, string?>()).OrderBy(e => e.Key).Select(e => $"{e.Key}={e.Value}"));
+        return _clients.GetOrAdd(key, _ => new Lazy<Task<McpClient>>(() => StartClientAsync(scopes, environment))).Value;
+    }
 
-    private Task<McpClient> StartClientAsync(string scopes) =>
-        McpClient.CreateAsync(new StdioClientTransport(new StdioClientTransportOptions
+    private Task<McpClient> StartClientAsync(string scopes, IReadOnlyDictionary<string, string?>? environment)
+    {
+        var variables = new Dictionary<string, string?>
+        {
+            ["Database__ConnectionString"] = ConnectionString,
+            ["Database__MigrateOnStartup"] = "false",
+            ["Security__Scopes"] = scopes,
+            ["Audit__RedactedArguments__0"] = "notes",
+        };
+
+        foreach (var (name, value) in environment ?? new Dictionary<string, string?>())
+        {
+            variables[name] = value;
+        }
+
+        return McpClient.CreateAsync(new StdioClientTransport(new StdioClientTransportOptions
         {
             Name = "erp-mcp",
             Command = "dotnet",
             Arguments = [Path.Combine(AppContext.BaseDirectory, "erp-mcp.dll")],
-            EnvironmentVariables = new Dictionary<string, string?>
-            {
-                ["Database__ConnectionString"] = ConnectionString,
-                ["Database__MigrateOnStartup"] = "false",
-                ["Security__Scopes"] = scopes,
-                ["Audit__RedactedArguments__0"] = "notes",
-            },
+            EnvironmentVariables = variables,
         }));
+    }
 
     private async Task DisposeMcpClientAsync()
     {

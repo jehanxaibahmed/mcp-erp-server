@@ -34,17 +34,22 @@ public sealed partial class PostgresFixture : IAsyncLifetime
         await _container.StartAsync();
         CreateMigrator().Migrate(seedSampleData: true);
         DataSource = NpgsqlDataSource.Create(ConnectionString);
-        Services = BuildServices();
+        Services = CreateServices(ConnectionString);
     }
 
     public T GetService<T>() where T : notnull => Services.GetRequiredService<T>();
 
-    private ServiceProvider BuildServices()
+    /// <summary>A connection string for the test database as a different login.</summary>
+    public string ConnectionStringFor(string username, string password) =>
+        new NpgsqlConnectionStringBuilder(ConnectionString) { Username = username, Password = password }.ConnectionString;
+
+    /// <summary>Application services wired to the given connection, e.g. a least-privilege login.</summary>
+    public static ServiceProvider CreateServices(string connectionString)
     {
         var configuration = new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>
             {
-                ["Database:ConnectionString"] = ConnectionString,
+                ["Database:ConnectionString"] = connectionString,
             })
             .Build();
 

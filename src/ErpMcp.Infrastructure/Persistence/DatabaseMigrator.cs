@@ -18,7 +18,7 @@ public sealed partial class DatabaseMigrator(IOptions<DatabaseOptions> options, 
 
     public void Migrate(bool seedSampleData)
     {
-        var connectionString = options.Value.ConnectionString;
+        var connectionString = options.Value.EffectiveMigrationConnectionString;
         // DbUp's default log writes to stdout, which is reserved for the MCP protocol stream.
         EnsureDatabase.For.PostgresqlDatabase(connectionString, new NoOpUpgradeLog());
 

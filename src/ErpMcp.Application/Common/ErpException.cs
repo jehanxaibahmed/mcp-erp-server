@@ -16,3 +16,7 @@ public sealed class InputValidationException(string field, string problem)
 /// <summary>The referenced record does not exist.</summary>
 public sealed class NotFoundException(string entity, string key)
     : ErpException($"{entity} '{key}' was not found.");
+
+/// <summary>The audit trail could not be written, and policy forbids acting without it.</summary>
+public sealed class AuditUnavailableException()
+    : ErpException("The audit trail is unavailable, so this call was refused. Nothing was executed. Try again shortly.");
