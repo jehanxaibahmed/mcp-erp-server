@@ -3,7 +3,7 @@ using ErpMcp.Domain.Common;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 
-namespace ErpMcp.Server;
+namespace ErpMcp.Server.Filters;
 
 /// <summary>
 /// Turns expected application failures into tool results with <c>isError: true</c> and a message

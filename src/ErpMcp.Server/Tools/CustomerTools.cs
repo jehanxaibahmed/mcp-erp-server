@@ -1,7 +1,9 @@
 using System.ComponentModel;
 using ErpMcp.Application.Common;
 using ErpMcp.Application.Customers;
+using ErpMcp.Application.Security;
 using ErpMcp.Domain.Customers;
+using ErpMcp.Server.Security;
 using ModelContextProtocol.Server;
 
 namespace ErpMcp.Server.Tools;
@@ -9,6 +11,7 @@ namespace ErpMcp.Server.Tools;
 [McpServerToolType]
 public sealed class CustomerTools(CustomerQueries customers)
 {
+    [RequiresScope(Scopes.CustomersRead)]
     [McpServerTool(Name = "search_customers", Title = "Search customers", ReadOnly = true, Idempotent = true, OpenWorld = false)]
     [Description("Find customer accounts by name, customer code or city. Returns a page of matches ordered by name.")]
     public Task<PagedResult<Customer>> SearchCustomers(
@@ -19,6 +22,7 @@ public sealed class CustomerTools(CustomerQueries customers)
         CancellationToken ct = default) =>
         customers.SearchAsync(query, status, limit, offset, ct);
 
+    [RequiresScope(Scopes.CustomersRead)]
     [McpServerTool(Name = "get_customer", Title = "Get customer", ReadOnly = true, Idempotent = true, OpenWorld = false)]
     [Description("Get one customer account with credit limit, status and a summary of their order history.")]
     public Task<CustomerDetails> GetCustomer(
